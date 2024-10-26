@@ -29,6 +29,8 @@ ast-decompiler = "^0.7.0"
 crewai = "0.76.2"
 crewai-tools = "0.13.2"
 validators = "0.22.0"
+ffmpeg-python = "0.2.0"
+python-ffmpeg = "2.0.10"
 
 
 [tool.poetry.scripts]

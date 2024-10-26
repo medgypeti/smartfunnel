@@ -7,6 +7,8 @@ import instaloader
 import logging
 from dotenv import load_dotenv
 import os
+import time
+
 
 import tempfile
 import logging
@@ -94,7 +96,14 @@ class FetchToAddInstagramAudioTool(BaseTool):
     args_schema: Type[BaseModel] = FetchToAddInstagramAudioInput
     insta_loader: Any = Field(default=None, exclude=True)
     app: Any = Field(default=None, exclude=True)
-    session_file: str = Field(default=None, exclude=True)  # Added this line
+# class FetchToAddInstagramAudioTool(BaseTool):
+#     """Tool that fetches Instagram posts and processes their audio for the vector database."""
+#     name: str = "Fetch and Process Instagram Audio"
+#     description: str = "Fetches Instagram posts and adds video audio to the vector database"
+#     args_schema: Type[BaseModel] = FetchToAddInstagramAudioInput
+#     insta_loader: Any = Field(default=None, exclude=True)
+#     app: Any = Field(default=None, exclude=True)
+#     session_file: str = Field(default=None, exclude=True)  # Added this line
 
     def __init__(self, app: App, **data):
         super().__init__(**data)
@@ -168,44 +177,90 @@ class FetchToAddInstagramAudioTool(BaseTool):
         except Exception as e:
             logger.warning(f"Error cleaning up temporary file {file_path}: {str(e)}")
 
+
     def _process_video(self, video_url: str, post_metadata: dict) -> bool:
         """Process a single video and add it to the vector database."""
         temp_audio_path = None
+        max_retries = 3
+        retry_delay = 1  # seconds
         
-        def download_and_process():
-            nonlocal temp_audio_path
-            response = requests.get(video_url, timeout=30)
-            if response.status_code != 200:
-                raise Exception(f"Failed to download video: Status code {response.status_code}")
-            
-            video_buffer = io.BytesIO(response.content)
-            audio = AudioSegment.from_file(video_buffer, format="mp4")
-            
-            audio_buffer = io.BytesIO()
-            audio.export(audio_buffer, format="wav")
-            audio_buffer.seek(0)
-            
-            temp_audio_path = self._process_audio(audio_buffer)
-            
-            self.app.add(
-                temp_audio_path,
-                data_type="audio",
-                metadata=post_metadata
-            )
-            return True
-
-        try:
-            success = self._retry_operation(download_and_process)
-            if success:
+        for attempt in range(max_retries):
+            try:
+                # Download video
+                response = requests.get(video_url, timeout=30)
+                if response.status_code != 200:
+                    raise Exception(f"Failed to download video: Status code {response.status_code}")
+                
+                # Process video data
+                video_buffer = io.BytesIO(response.content)
+                audio = AudioSegment.from_file(video_buffer, format="mp4")
+                
+                # Export as WAV
+                audio_buffer = io.BytesIO()
+                audio.export(audio_buffer, format="wav")
+                audio_buffer.seek(0)
+                
+                # Save to temporary file
+                temp_audio_path = self._process_audio(audio_buffer)
+                
+                # Add to embedchain with metadata
+                self.app.add(
+                    temp_audio_path,
+                    data_type="audio",
+                    metadata=post_metadata
+                )
+                
                 logger.info(f"Successfully processed video: {video_url}")
-            return success
+                return True
+                
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+                if temp_audio_path:
+                    self._cleanup_temp_file(temp_audio_path)
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                continue
             
-        except Exception as e:
-            logger.error(f"Error processing video {video_url}: {str(e)}")
-            return False
-        finally:
-            if temp_audio_path:
-                self._cleanup_temp_file(temp_audio_path)
+        logger.error(f"Error processing video {video_url}: Failed after {max_retries} attempts")
+        return False
+    # def _process_video(self, video_url: str, post_metadata: dict) -> bool:
+    #     """Process a single video and add it to the vector database."""
+    #     temp_audio_path = None
+        
+    #     def download_and_process():
+    #         nonlocal temp_audio_path
+    #         response = requests.get(video_url, timeout=30)
+    #         if response.status_code != 200:
+    #             raise Exception(f"Failed to download video: Status code {response.status_code}")
+            
+    #         video_buffer = io.BytesIO(response.content)
+    #         audio = AudioSegment.from_file(video_buffer, format="mp4")
+            
+    #         audio_buffer = io.BytesIO()
+    #         audio.export(audio_buffer, format="wav")
+    #         audio_buffer.seek(0)
+            
+    #         temp_audio_path = self._process_audio(audio_buffer)
+            
+    #         self.app.add(
+    #             temp_audio_path,
+    #             data_type="audio",
+    #             metadata=post_metadata
+    #         )
+    #         return True
+
+    #     try:
+    #         success = self._retry_operation(download_and_process)
+    #         if success:
+    #             logger.info(f"Successfully processed video: {video_url}")
+    #         return success
+            
+    #     except Exception as e:
+    #         logger.error(f"Error processing video {video_url}: {str(e)}")
+    #         return False
+    #     finally:
+    #         if temp_audio_path:
+    #             self._cleanup_temp_file(temp_audio_path)
 
     def _run(self, instagram_username: str) -> FetchToAddInstagramAudioOutput:
         processed_videos = []
