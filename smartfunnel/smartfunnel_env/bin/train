@@ -1,0 +1,6 @@
+#!/Users/vladimirdeziegler/text_crewai/SmartFunnel/smartfunnel/smartfunnel_env/bin/python
+import sys
+from smartfunnel.main import train
+
+if __name__ == '__main__':
+    sys.exit(train())

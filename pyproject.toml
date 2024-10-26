@@ -1,0 +1,49 @@
+[tool.poetry]
+name = "smartfunnel"
+version = "0.1.0"
+description = "smartfunnel using crewAI"
+authors = ["Vladimir de Ziegler <vladimirdeziegler@gmail.com>"]
+packages = [
+    { include = "smartfunnel", from = "src" }
+]
+
+[tool.poetry.dependencies]
+pyyaml = "^6.0"
+python = ">=3.11,<3.12"
+crewai = { extras = ["tools"], version = "^0.70.1" }
+python-dotenv = "1.0.0"
+firecrawl-py = "^0.0.20"
+embedchain = { extras = ["youtube"], version = "^0.1.116" }
+langchain-anthropic = "^0.1.20"
+ollama = "^0.2.1"
+requests = "^2.31.0"
+groq = "^0.11.0"
+openai = "^1.12.0"
+streamlit = "^1.31.0"
+instaloader = "^4.10.2"
+moviepy = "^1.0.3"
+youtube-transcript-api = "^0.6.2"
+beautifulsoup4 = "^4.12.3"
+pydub = "^0.25.1"
+deepgram-sdk = "^3.1.5"
+typing-extensions = "^4.9.0"
+ast-decompiler = "^0.7.0"
+
+[tool.poetry.scripts]
+smartfunnel = "smartfunnel.main:run"
+run_crew = "smartfunnel.main:run"
+train = "smartfunnel.main:train"
+replay = "smartfunnel.main:replay"
+test = "smartfunnel.main:test"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+useLibraryCodeForTypes = true
+exclude = [".cache"]
+
+[tool.ruff]
+select = ['E', 'W', 'F', 'I', 'B', 'C4', 'ARG', 'SIM']
+ignore = ['W291', 'W292', 'W293']

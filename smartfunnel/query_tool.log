@@ -1,0 +1,146 @@
+2024-10-24 12:05:13,149 - __main__ - INFO - Fetching posts from antoineblanco99...
+2024-10-24 12:05:13,149 - __main__ - INFO - Fetching posts for user: antoineblanco99
+2024-10-24 12:05:17,154 - __main__ - INFO - Successfully logged in to Instagram
+2024-10-24 12:05:26,275 - __main__ - INFO - Processed post C6MLtPHtM3C
+2024-10-24 12:05:26,276 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:05:26,276 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:05:26,276 - __main__ - DEBUG - Found 1 video posts
+2024-10-24 12:05:38,677 - __main__ - INFO - Successfully processed 1 videos
+2024-10-24 12:05:43,678 - __main__ - INFO - Verifying database content...
+2024-10-24 12:05:43,679 - __main__ - INFO - 
+Executing test query: What are the main topics discussed in these videos?
+2024-10-24 12:05:46,611 - __main__ - INFO - Query completed successfully
+2024-10-24 12:05:46,611 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content or a database of such videos. Therefore, I can't provide an analysis or respond to the query about the main topics discussed in t...
+2024-10-24 12:05:46,611 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:46,611 - __main__ - INFO - Query: What are the main topics discussed in these videos?
+2024-10-24 12:05:46,611 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content or a database of such videos. Therefore, I can't provide an analysis or respond to the query about the main topics discussed in those videos. If you have any other questions or need information on a different topic, feel free to ask!
+2024-10-24 12:05:46,611 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:47,612 - __main__ - INFO - 
+Executing test query: What specific examples or quotes can you find from any of the videos?
+2024-10-24 12:05:49,348 - __main__ - INFO - Query completed successfully
+2024-10-24 12:05:49,348 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content or a database of such content to provide examples or quotes. If you have any other questions or need assistance with a different ...
+2024-10-24 12:05:49,348 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:49,349 - __main__ - INFO - Query: What specific examples or quotes can you find from any of the videos?
+2024-10-24 12:05:49,349 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content or a database of such content to provide examples or quotes. If you have any other questions or need assistance with a different topic, feel free to ask!
+2024-10-24 12:05:49,349 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:50,350 - __main__ - INFO - 
+Executing test query: Are there any recurring themes or patterns in the video content?
+2024-10-24 12:05:52,031 - __main__ - INFO - Query completed successfully
+2024-10-24 12:05:52,031 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content or a database of such videos to analyze recurring themes or patterns....
+2024-10-24 12:05:52,031 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:52,031 - __main__ - INFO - Query: Are there any recurring themes or patterns in the video content?
+2024-10-24 12:05:52,031 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content or a database of such videos to analyze recurring themes or patterns.
+2024-10-24 12:05:52,032 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:53,032 - __main__ - INFO - 
+Executing test query: What is the overall tone or style of these videos?
+2024-10-24 12:05:54,682 - __main__ - INFO - Query completed successfully
+2024-10-24 12:05:54,682 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content or its database to provide an analysis of the tone or style of these videos....
+2024-10-24 12:05:54,682 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:54,682 - __main__ - INFO - Query: What is the overall tone or style of these videos?
+2024-10-24 12:05:54,682 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content or its database to provide an analysis of the tone or style of these videos.
+2024-10-24 12:05:54,683 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:05:55,684 - __main__ - ERROR - Error getting collection info: 'ChromaDB' object has no attribute 'get_collection_info'
+2024-10-24 12:10:37,072 - __main__ - INFO - Fetching posts from antoineblanco99...
+2024-10-24 12:10:37,072 - __main__ - INFO - Fetching posts for user: antoineblanco99
+2024-10-24 12:10:42,567 - __main__ - INFO - Successfully logged in to Instagram
+2024-10-24 12:10:51,085 - __main__ - INFO - Processed post C6MLtPHtM3C
+2024-10-24 12:10:51,086 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:10:51,086 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:10:51,086 - __main__ - DEBUG - Found 1 video posts
+2024-10-24 12:11:02,592 - __main__ - INFO - Successfully processed 1 videos
+2024-10-24 12:11:07,593 - __main__ - INFO - Verifying database content...
+2024-10-24 12:11:07,596 - __main__ - INFO - 
+Executing test query: What are the main topics discussed in these videos?
+2024-10-24 12:11:11,426 - __main__ - INFO - Query completed successfully
+2024-10-24 12:11:11,427 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content to analyze and provide details on the main topics discussed. Please let me know if there's anything else I can assist you with....
+2024-10-24 12:11:11,427 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:11,427 - __main__ - INFO - Query: What are the main topics discussed in these videos?
+2024-10-24 12:11:11,427 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content to analyze and provide details on the main topics discussed. Please let me know if there's anything else I can assist you with.
+2024-10-24 12:11:11,427 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:12,428 - __main__ - INFO - 
+Executing test query: What specific examples or quotes can you find from any of the videos?
+2024-10-24 12:11:14,831 - __main__ - INFO - Query completed successfully
+2024-10-24 12:11:14,831 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content or a database of such content. Therefore, I'm unable to provide specific examples or quotes from any videos. If you have any othe...
+2024-10-24 12:11:14,831 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:14,831 - __main__ - INFO - Query: What specific examples or quotes can you find from any of the videos?
+2024-10-24 12:11:14,831 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content or a database of such content. Therefore, I'm unable to provide specific examples or quotes from any videos. If you have any other questions or need assistance with a different topic, feel free to ask!
+2024-10-24 12:11:14,831 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:15,833 - __main__ - INFO - 
+Executing test query: Are there any recurring themes or patterns in the video content?
+2024-10-24 12:11:17,598 - __main__ - INFO - Query completed successfully
+2024-10-24 12:11:17,599 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content or a database of such content to analyze recurring themes or patterns. If you have any other questions or need information on a d...
+2024-10-24 12:11:17,599 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:17,599 - __main__ - INFO - Query: Are there any recurring themes or patterns in the video content?
+2024-10-24 12:11:17,599 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content or a database of such content to analyze recurring themes or patterns. If you have any other questions or need information on a different topic, feel free to ask!
+2024-10-24 12:11:17,599 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:18,600 - __main__ - INFO - 
+Executing test query: What is the overall tone or style of these videos?
+2024-10-24 12:11:20,452 - __main__ - INFO - Query completed successfully
+2024-10-24 12:11:20,452 - __main__ - DEBUG - Raw response: I'm sorry, but I don't have access to specific Instagram video content in the database to analyze the overall tone or style of these videos....
+2024-10-24 12:11:20,452 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:20,452 - __main__ - INFO - Query: What is the overall tone or style of these videos?
+2024-10-24 12:11:20,452 - __main__ - INFO - Response: I'm sorry, but I don't have access to specific Instagram video content in the database to analyze the overall tone or style of these videos.
+2024-10-24 12:11:20,452 - __main__ - INFO - --------------------------------------------------
+2024-10-24 12:11:21,453 - __main__ - ERROR - Error getting collection info: 'ChromaDB' object has no attribute 'get_collection_info'
+2024-10-24 12:17:55,866 - __main__ - INFO - Fetching posts from antoineblanco99...
+2024-10-24 12:17:55,866 - __main__ - INFO - Fetching posts for user: antoineblanco99
+2024-10-24 12:18:07,805 - __main__ - INFO - Successfully logged in to Instagram
+2024-10-24 12:18:15,460 - __main__ - INFO - Processed post C6MLtPHtM3C
+2024-10-24 12:18:15,462 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:18:15,462 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:18:15,462 - __main__ - DEBUG - Found 1 video posts
+2024-10-24 12:18:15,464 - __main__ - ERROR - Error in main execution: 
+            FATAL ERROR:
+            You are attempting to instantiate a Deepgram object, which is no longer a class in version 3 of this SDK.
+
+            To fix this issue:
+                1. You need to revert to the previous version 2 of the SDK: pip install deepgram-sdk==2.12.0
+                2. or, update your application's code to use version 3 of this SDK. See the README for more information.
+
+            Things to consider:
+
+                - This Version 3 of the SDK requires Python 3.10 or higher.
+                  Older versions (3.9 and lower) of Python are nearing end-of-life: https://devguide.python.org/versions/
+                  Understand the risks of using a version of Python nearing EOL.
+
+                - Version 2 of the SDK will receive maintenance updates in the form of security fixes only.
+                  No new features will be added to version 2 of the SDK.
+            
+2024-10-24 12:18:15,467 - __main__ - ERROR - Traceback (most recent call last):
+  File "/Users/vladimirdeziegler/text_crewai/SmartFunnel/smartfunnel/asynctesting.py", line 851, in main_async
+    processed_urls = await process_posts_concurrently(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/vladimirdeziegler/text_crewai/SmartFunnel/smartfunnel/asynctesting.py", line 501, in process_posts_concurrently
+    audio_tool = AsyncAddInstagramAudioTool(app=app_instance, max_concurrent=max_concurrent)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/vladimirdeziegler/text_crewai/SmartFunnel/smartfunnel/asynctesting.py", line 237, in __init__
+    self.deepgram = Deepgram(os.environ["DEEPGRAM_API_KEY"])
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/vladimirdeziegler/Library/Caches/pypoetry/virtualenvs/hugoapp-wdJ-ioYQ-py3.11/lib/python3.11/site-packages/deepgram/client.py", line 120, in __init__
+    raise Exception(
+Exception: 
+            FATAL ERROR:
+            You are attempting to instantiate a Deepgram object, which is no longer a class in version 3 of this SDK.
+
+            To fix this issue:
+                1. You need to revert to the previous version 2 of the SDK: pip install deepgram-sdk==2.12.0
+                2. or, update your application's code to use version 3 of this SDK. See the README for more information.
+
+            Things to consider:
+
+                - This Version 3 of the SDK requires Python 3.10 or higher.
+                  Older versions (3.9 and lower) of Python are nearing end-of-life: https://devguide.python.org/versions/
+                  Understand the risks of using a version of Python nearing EOL.
+
+                - Version 2 of the SDK will receive maintenance updates in the form of security fixes only.
+                  No new features will be added to version 2 of the SDK.
+            
+
+2024-10-24 12:22:39,550 - __main__ - INFO - Fetching posts from antoineblanco99...
+2024-10-24 12:22:39,550 - __main__ - INFO - Fetching posts for user: antoineblanco99
+2024-10-24 12:22:43,691 - __main__ - INFO - Successfully logged in to Instagram
+2024-10-24 12:22:55,374 - __main__ - INFO - Processed post C6MLtPHtM3C
+2024-10-24 12:22:55,375 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:22:55,375 - __main__ - INFO - Successfully fetched 1 posts
+2024-10-24 12:22:55,376 - __main__ - DEBUG - Found 1 video posts
+2024-10-24 12:23:11,927 - __main__ - INFO - Successfully processed 1 videos
