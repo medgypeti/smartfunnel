@@ -1,7 +1,7 @@
 import streamlit as st
 import sys
 import json
-from smartfunnel.crew import LatestAiDevelopmentCrew
+from crew import LatestAiDevelopmentCrew
 
 def validate_password(password):
     """
