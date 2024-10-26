@@ -31,6 +31,8 @@ crewai-tools = "0.13.2"
 validators = "0.22.0"
 ffmpeg-python = "0.2.0"
 python-ffmpeg = "2.0.10"
+pysqlite3-binary = "^0.5.4"
+
 
 
 [tool.poetry.scripts]
