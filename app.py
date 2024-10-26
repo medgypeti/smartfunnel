@@ -1,7 +1,7 @@
 import streamlit as st
 import sys
 import json
-from smartfunnel.crew import LatestAiDevelopmentCrew
+# from smartfunnel.crew import LatestAiDevelopmentCrew
 
 def validate_password(password):
     """
@@ -128,7 +128,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+
 # import streamlit as st
 # import sys
 # import json
