@@ -28,13 +28,11 @@ typing-extensions = "^4.9.0"
 ast-decompiler = "^0.7.0"
 crewai = "0.76.2"
 crewai-tools = "0.13.2"
+pysqlite3-binary = "^0.5.2"
 
 [tool.poetry.scripts]
-smartfunnel = "smartfunnel.main:run"
-run_crew = "smartfunnel.main:run"
-train = "smartfunnel.main:train"
-replay = "smartfunnel.main:replay"
-test = "smartfunnel.main:test"
+smartfunnel = "smartfunnel.app:main"  # Assuming there's a main() function in app.py
+run = "smartfunnel.app:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
