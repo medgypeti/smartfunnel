@@ -1,7 +1,13 @@
+from smartfunnel.sqlite_setup import ensure_pysqlite3
+ensure_pysqlite3()  # Call this before any other imports
+
 import streamlit as st
 import sys
 import json
 from crew import LatestAiDevelopmentCrew
+
+import streamlit as st
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 def validate_password(password):
     """

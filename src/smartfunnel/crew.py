@@ -36,11 +36,15 @@ from pydantic import BaseModel, Field
 # Load environment variables
 load_dotenv()
 
-from pydantic import BaseModel, Field
+# from pydantic import BaseModel, Field
+from typing import List, Optional
+from crewai_tools.tools.base_tool import BaseTool
+
+# from pydantic import BaseModel, Field
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
-from typing import List, Optional
+import streamlit as st
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 class ValueObject(BaseModel):
     name: str = Field(
