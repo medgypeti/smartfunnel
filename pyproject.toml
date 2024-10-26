@@ -8,8 +8,8 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-pyyaml = "^6.0"
 python = ">=3.11,<3.12"
+pyyaml = "^6.0"
 python-dotenv = "1.0.0"
 firecrawl-py = "^0.0.20"
 embedchain = { extras = ["youtube"], version = "^0.1.116" }
@@ -28,8 +28,6 @@ typing-extensions = "^4.9.0"
 ast-decompiler = "^0.7.0"
 crewai = "0.76.2"
 crewai-tools = "0.13.2"
-pysqlite3-binary = "*"
-
 
 [tool.poetry.scripts]
 smartfunnel = "smartfunnel.main:run"
