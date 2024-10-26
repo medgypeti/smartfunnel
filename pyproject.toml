@@ -28,6 +28,8 @@ pydub = "^0.25.1"
 deepgram-sdk = "^3.1.5"
 typing-extensions = "^4.9.0"
 ast-decompiler = "^0.7.0"
+pydantic = "^2.4.2"
+
 
 [tool.poetry.scripts]
 smartfunnel = "smartfunnel.main:run"
