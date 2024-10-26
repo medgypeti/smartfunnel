@@ -14,16 +14,16 @@ import os
 # from FetchLatestVideosFromYouTubeChannelTool import FetchLatestVideosFromYouTubeChannelTool
 
 
-from tools.chroma_db_init import app_instance
+from smartfunnel.tools.chroma_db_init import app_instance
 
-from tools.FetchRelevantVideosFromYouTubeChannelTool import FetchRelevantVideosFromYouTubeChannelTool
-from tools.AddVideoToVectorDBTool import AddVideoToVectorDBTool
-from tools.QueryVectorDBTool import QueryVectorDBTool
+from smartfunnel.tools.FetchRelevantVideosFromYouTubeChannelTool import FetchRelevantVideosFromYouTubeChannelTool
+from smartfunnel.tools.AddVideoToVectorDBTool import AddVideoToVectorDBTool
+from smartfunnel.tools.QueryVectorDBTool import QueryVectorDBTool
 
-from tools.FetchToAddInstagramAudioTool import FetchToAddInstagramAudioTool
-from tools.QueryInstagramDBTool import QueryInstagramDBTool
+from smartfunnel.tools.FetchToAddInstagramAudioTool import FetchToAddInstagramAudioTool
+from smartfunnel.tools.QueryInstagramDBTool import QueryInstagramDBTool
 
-from tools.PromptingRagTool import PromptingRagTool
+from smartfunnel.tools.PromptingRagTool import PromptingRagTool
 
 from crewai_tools import SerperDevTool
 from typing import List, Optional

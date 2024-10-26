@@ -28,6 +28,8 @@ typing-extensions = "^4.9.0"
 ast-decompiler = "^0.7.0"
 crewai = "0.76.2"
 crewai-tools = "0.13.2"
+validators = "0.22.0"
+
 
 [tool.poetry.scripts]
 smartfunnel = "smartfunnel.app:main"  # Assuming there's a main() function in app.py
