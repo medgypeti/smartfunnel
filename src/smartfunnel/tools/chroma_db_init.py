@@ -1,19 +1,51 @@
+import os
+import tempfile
+import logging
+from pathlib import Path
+from embedchain import App
+from embedchain.chunkers.common_chunker import CommonChunker
+from embedchain.config.add_config import ChunkerConfig
+import streamlit as st
+import shutil
+
 import tempfile
 import logging
 from embedchain import App
 from embedchain.chunkers.common_chunker import CommonChunker
 from embedchain.config.add_config import ChunkerConfig
 import streamlit as st
-
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create a temporary directory for ChromaDB
-db_path = tempfile.mkdtemp()
-logger.info(f"Created temporary directory for ChromaDB: {db_path}")
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+
+# Create a persistent directory for ChromaDB
+def get_chroma_db_path():
+    # Use a fixed location in the project directory
+    base_dir = Path(__file__).parent.parent
+    db_dir = base_dir / "chroma_db"
+    
+    # Create directory if it doesn't exist
+    db_dir.mkdir(parents=True, exist_ok=True)
+    
+    return str(db_dir)
+
+def cleanup_old_db():
+    db_path = get_chroma_db_path()
+    if os.path.exists(db_path):
+        try:
+            shutil.rmtree(db_path)
+            logger.info(f"Cleaned up old ChromaDB at: {db_path}")
+        except Exception as e:
+            logger.warning(f"Failed to cleanup old ChromaDB: {e}")
+# # Set up logging
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
+
+# # Create a temporary directory for ChromaDB
+# db_path = tempfile.mkdtemp()
+# logger.info(f"Created temporary directory for ChromaDB: {db_path}")
 
 config = {
     'app': {
@@ -70,7 +102,8 @@ config = {
     'vectordb': {
         'provider': 'chroma',
         'config': {
-            'dir': db_path,
+            # 'dir': db_path,
+            'dir': get_chroma_db_path(),
             'allow_reset': True
         }
     },
@@ -90,9 +123,33 @@ config = {
 }
 
 def get_app_instance():
+    try:
+        # Try to reduce file watching if running in Streamlit
+        import streamlit.runtime.scriptrunner as streamlit_runtime
+        if hasattr(streamlit_runtime, 'get_script_run_ctx'):
+            if streamlit_runtime.get_script_run_ctx():
+                st.set_option('server.fileWatcherType', 'none')
+    except:
+        pass
+    
     return App.from_config(config=config)
 
-app_instance = get_app_instance()
+# Create singleton instance
+_app_instance = None
+
+def get_or_create_app_instance():
+    global _app_instance
+    if _app_instance is None:
+        _app_instance = get_app_instance()
+    return _app_instance
+
+# Initialize the singleton instance
+app_instance = get_or_create_app_instance()
+
+# def get_app_instance():
+#     return App.from_config(config=config)
+
+# app_instance = get_app_instance()
 
 
 # import tempfile
