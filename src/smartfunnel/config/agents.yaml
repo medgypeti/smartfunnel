@@ -108,7 +108,14 @@ prompting_rag_agent:
   role: >
     Prompting RAG Agent
   goal: >
-    Use the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
+    Use the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story. The output of the tool will do all the work. Keep it unchanged.
   backstory: >
-    A professional who is skilled in using the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
+    A professional and abiding by the instructions who is skilled in using the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
 
+# prompting_rag_agent:
+#   role: >
+#     Prompting RAG Agent
+#   goal: >
+#     Use the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
+#   backstory: >
+#     A professional who is skilled in using the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.

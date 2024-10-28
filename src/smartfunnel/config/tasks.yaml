@@ -1042,3 +1042,11 @@ prompting_rag_task:
     The generated text containing the [persona], [achievements], [challenges],[values] sections.
   agent: prompting_rag_agent
 
+prompting_rag_task:
+  description: >
+    You will use the tool "Prompting RAG" tool to transform ALL the information from the ContentCreatorInfo object gathered throughout the previous tasks into a new narrative that follows the template's structure and style, but tells the creator's story.
+    IMPORTANT: The output of the tool will do all the work. Keep it unchanged.
+  expected_output: >
+    The output of the "Prompting RAG" tool.
+  agent: prompting_rag_agent
+
