@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Type
 import requests
 from crewai_tools.tools.base_tool import BaseTool
+
 from pydantic.v1 import BaseModel, Field
 from groq import Groq
 import openai
@@ -178,8 +179,8 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
         return video_details
 
     def rank_videos(self, videos: List[VideoInfo]) -> List[VideoInfo]:
-        # groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        groq_client = GROQ_API_KEY
+        # Create a Groq client instance with the API key
+        groq_client = Groq(api_key=GROQ_API_KEY)
         
         for video in videos:
             prompt = f"""
@@ -217,3 +218,44 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
                 video.relevance_score = 0
 
         return sorted(videos, key=lambda v: v.relevance_score, reverse=True)
+
+    # def rank_videos(self, videos: List[VideoInfo]) -> List[VideoInfo]:
+    #     # groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    #     groq_client = GROQ_API_KEY
+        
+    #     for video in videos:
+    #         prompt = f"""
+    #         Rate how likely this video is to cover the personal story of its creator. Respond with a single number from 0 to 10, where 0 means not at all likely and 10 means extremely likely.
+
+    #         Title: {video.title}
+    #         Description: {video.description}
+
+    #         Rating (0-10):
+    #         """
+
+    #         try:
+    #             response = groq_client.chat.completions.create(
+    #                 model="llama-3.1-70b-versatile",
+    #                 messages=[
+    #                     {"role": "system", "content": "You are an AI that rates videos based on their relevance to the creator's personal story. Respond only with a number from 0 to 10."},
+    #                     {"role": "user", "content": prompt}
+    #                 ],
+    #                 max_tokens=5,
+    #                 temperature=0.2
+    #             )
+
+    #             score_text = response.choices[0].message.content.strip()
+    #             try:
+    #                 score = float(score_text)
+    #                 if 0 <= score <= 10:
+    #                     video.relevance_score = score * 10  # Convert to 0-100 scale
+    #                 else:
+    #                     raise ValueError(f"Score out of range: {score}")
+    #             except ValueError:
+    #                 print(f"Failed to parse score for video {video.title}: {score_text}")
+    #                 video.relevance_score = 0
+    #         except Exception as e:
+    #             print(f"Error with Groq API for video {video.title}: {str(e)}")
+    #             video.relevance_score = 0
+
+    #     return sorted(videos, key=lambda v: v.relevance_score, reverse=True)

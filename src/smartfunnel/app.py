@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 # Initialize Streamlit configs
 try:
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+except Exception as e:
+    logger.warning(f"Error initializing Streamlit configs: {e}")
+
+
+# Initialize Streamlit configs
+try:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     
     # Reduce file watching using safer check
     import streamlit.runtime.scriptrunner as streamlit_runtime
@@ -74,6 +81,26 @@ def generate_markdown_content(crew_output) -> str:
         logger.error(f"Error generating markdown: {e}")
         raise
 
+
+# def process_creator_data(youtube_handle: str, instagram_username: str) -> Optional[dict]:
+#     """Process creator data and return results, handling empty inputs"""
+#     try:
+#         # Only include non-empty inputs
+#         inputs = {}
+#         if youtube_handle:
+#             inputs["youtube_channel_handle"] = youtube_handle
+#         if instagram_username:
+#             inputs["instagram_username"] = instagram_username
+            
+#         if not inputs:
+#             raise ValueError("At least one input (YouTube handle or Instagram username) is required")
+        
+#         crew_output = LatestAiDevelopmentCrew().crew().kickoff(inputs=inputs)
+#         return crew_output
+#     except Exception as e:
+#         logger.error(f"Error processing creator data: {e}")
+#         raise
+
 def process_creator_data(youtube_handle: str, instagram_username: str) -> Optional[dict]:
     """Process creator data and return results"""
     try:
@@ -93,8 +120,8 @@ def main():
     
     # Create form for input
     with st.form("creator_form"):
-        youtube_handle = st.text_input("YouTube Handle")
-        instagram_username = st.text_input("Instagram Username")
+        youtube_handle = st.text_input("YouTube Handle (optional)")
+        instagram_username = st.text_input("Instagram Username (optional)")
         password = st.text_input("Password", type="password")
         submit_button = st.form_submit_button("Analyze")
     
@@ -107,6 +134,10 @@ def main():
     if submit_button:
         if not validate_password(password):
             st.error("Invalid password")
+            return
+            
+        if not youtube_handle and not instagram_username:
+            st.error("Please provide at least one input (YouTube handle or Instagram username)")
             return
             
         try:
@@ -123,6 +154,41 @@ def main():
         except Exception as e:
             logger.error(f"Analysis failed: {e}")
             st.error(f"Analysis failed: {str(e)}")
+# def main():
+#     st.title("CrewAI Creator Analysis")
+    
+#     # Create form for input
+#     with st.form("creator_form"):
+#         youtube_handle = st.text_input("YouTube Handle")
+#         instagram_username = st.text_input("Instagram Username")
+#         password = st.text_input("Password", type="password")
+#         submit_button = st.form_submit_button("Analyze")
+    
+#     # Initialize session state
+#     if 'analysis_complete' not in st.session_state:
+#         st.session_state.analysis_complete = False
+#     if 'crew_output' not in st.session_state:
+#         st.session_state.crew_output = None
+    
+#     if submit_button:
+#         if not validate_password(password):
+#             st.error("Invalid password")
+#             return
+            
+#         try:
+#             with st.spinner("Analyzing creator data..."):
+#                 crew_output = process_creator_data(youtube_handle, instagram_username)
+                
+#                 # Update session state
+#                 st.session_state.crew_output = crew_output
+#                 st.session_state.analysis_complete = True
+                
+#                 # Save to file
+#                 save_output_to_markdown(crew_output)
+                
+#         except Exception as e:
+#             logger.error(f"Analysis failed: {e}")
+#             st.error(f"Analysis failed: {str(e)}")
     
     # Display results
     if st.session_state.analysis_complete and st.session_state.crew_output is not None:

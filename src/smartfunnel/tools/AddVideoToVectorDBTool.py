@@ -6,10 +6,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import logging
 import re
 from bs4 import BeautifulSoup
-import re
 import requests
-
-logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +22,22 @@ class AddVideoToVectorDBTool(BaseTool):
     description: str = "Adds a YouTube video transcript to the vector database."
     args_schema: Type[AddVideoToVectorDBInput] = AddVideoToVectorDBInput
     app: Any = Field(default=None, exclude=True)
+    _is_initialized: bool = Field(default=False, exclude=True)
 
     def __init__(self, app: App, **data):
         super().__init__(**data)
         self.app = app
+        self._is_initialized = False
+
+    def initialize_for_new_creator(self):
+        """Reset the vector database before starting analysis for a new creator."""
+        logger.info("Initializing vector database for new creator")
+        if self.app is not None:
+            self.app.reset()
+            logger.info("Vector database reset successfully")
+        else:
+            logger.error("No app instance available for reset")
+        self._is_initialized = True
 
     def _extract_video_id(self, url: str) -> str:
         """Extract the video ID from a YouTube URL."""
@@ -47,16 +56,13 @@ class AddVideoToVectorDBTool(BaseTool):
         except Exception as e:
             logger.warning(f"Failed to fetch official transcript: {str(e)}")
             
-            # If official transcript fails, try to get auto-generated captions
             try:
                 print("Trying to fetch auto-generated captions")
-                # transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en-US', 'en'])
                 transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['fr-FR', 'fr'])
                 return " ".join([entry['text'] for entry in transcript])
             except Exception as e:
                 logger.warning(f"Failed to fetch auto-generated captions: {str(e)}")
                 
-                # If both methods fail, try to scrape the transcript
                 print("Trying to scrape captions")
                 return self._scrape_transcript(video_id)
 
@@ -66,7 +72,6 @@ class AddVideoToVectorDBTool(BaseTool):
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Look for the transcript in the page source
         transcript_element = soup.find('div', {'class': 'ytd-transcript-renderer'})
         if transcript_element:
             return transcript_element.get_text()
@@ -74,6 +79,9 @@ class AddVideoToVectorDBTool(BaseTool):
             raise Exception("Could not find transcript in the video page")
 
     def _run(self, video_url: str) -> AddVideoToVectorDBOutput:
+        if not self._is_initialized:
+            self.initialize_for_new_creator()
+            
         try:
             logger.info(f"Processing video: {video_url}")
             video_id = self._extract_video_id(video_url)
@@ -88,7 +96,23 @@ class AddVideoToVectorDBTool(BaseTool):
             error_message = f"Failed to add video transcript: {str(e)}"
             logger.error(error_message)
             return AddVideoToVectorDBOutput(success=False, error_message=error_message)
-        
+
+# from crewai_tools.tools.base_tool import BaseTool
+# from crewai_tools.tools.base_tool import BaseTool
+# from pydantic.v1 import BaseModel, Field
+# from typing import Any, Type
+# from embedchain import App
+# from youtube_transcript_api import YouTubeTranscriptApi
+# import logging
+# import re
+# from bs4 import BeautifulSoup
+# import re
+# import requests
+
+# logger = logging.getLogger(__name__)
+
+# logger = logging.getLogger(__name__)
+
 # class AddVideoToVectorDBInput(BaseModel):
 #     video_url: str = Field(..., description="The URL of the YouTube video to add to the vector DB.")
 
@@ -117,10 +141,37 @@ class AddVideoToVectorDBTool(BaseTool):
 #     def _fetch_transcript(self, video_id: str) -> str:
 #         """Fetch the transcript for a given YouTube video ID."""
 #         try:
+#             # First, try to get the official transcript
 #             transcript = YouTubeTranscriptApi.get_transcript(video_id)
 #             return " ".join([entry['text'] for entry in transcript])
 #         except Exception as e:
-#             raise Exception(f"Failed to fetch transcript: {str(e)}")
+#             logger.warning(f"Failed to fetch official transcript: {str(e)}")
+            
+#             # If official transcript fails, try to get auto-generated captions
+#             try:
+#                 print("Trying to fetch auto-generated captions")
+#                 # transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en-US', 'en'])
+#                 transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['fr-FR', 'fr'])
+#                 return " ".join([entry['text'] for entry in transcript])
+#             except Exception as e:
+#                 logger.warning(f"Failed to fetch auto-generated captions: {str(e)}")
+                
+#                 # If both methods fail, try to scrape the transcript
+#                 print("Trying to scrape captions")
+#                 return self._scrape_transcript(video_id)
+
+#     def _scrape_transcript(self, video_id: str) -> str:
+#         """Scrape the transcript from the YouTube video page."""
+#         url = f"https://www.youtube.com/watch?v={video_id}"
+#         response = requests.get(url)
+#         soup = BeautifulSoup(response.text, 'html.parser')
+        
+#         # Look for the transcript in the page source
+#         transcript_element = soup.find('div', {'class': 'ytd-transcript-renderer'})
+#         if transcript_element:
+#             return transcript_element.get_text()
+#         else:
+#             raise Exception("Could not find transcript in the video page")
 
 #     def _run(self, video_url: str) -> AddVideoToVectorDBOutput:
 #         try:
@@ -135,16 +186,5 @@ class AddVideoToVectorDBTool(BaseTool):
 #             return AddVideoToVectorDBOutput(success=True)
 #         except Exception as e:
 #             error_message = f"Failed to add video transcript: {str(e)}"
-#             logger.error(error_message)
-#             return AddVideoToVectorDBOutput(success=False, error_message=error_message)
-
-#     def _run(self, video_url: str) -> AddVideoToVectorDBOutput:
-#         try:
-#             logger.info(f"Adding video to vector DB: {video_url}")
-#             self.app.add(video_url, data_type="youtube_video")
-#             logger.info("Video successfully added to vector DB")
-#             return AddVideoToVectorDBOutput(success=True)
-#         except Exception as e:
-#             error_message = f"Failed to add video: {str(e)}"
 #             logger.error(error_message)
 #             return AddVideoToVectorDBOutput(success=False, error_message=error_message)

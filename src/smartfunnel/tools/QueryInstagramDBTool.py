@@ -1,4 +1,4 @@
-from typing import List, Type, Optional, Union
+from typing import List, Type, Optional, Union, Dict
 from datetime import datetime, timedelta
 import tempfile
 import random
@@ -20,7 +20,11 @@ from embedchain import App
 
 class QueryInstagramDBInput(BaseModel):
     """Input for QueryInstagramDB."""
-    query: str = Field(..., description="The query to search the Instagram content database")
+    query: str = Field(
+        ..., 
+        description="The query to search the instagram content added to the database",
+        example="How do the author's values impact their work?"
+    )
 
 class QueryInstagramDBOutput(BaseModel):
     """Output for QueryInstagramDB."""
@@ -28,119 +32,104 @@ class QueryInstagramDBOutput(BaseModel):
     error_message: str = Field(default="", description="Error message if the operation failed")
     success: bool = Field(..., description="Whether the operation was successful")
 
-# class QueryInstagramDBInput(BaseModel):
-#     query: str = Field(..., description="The query to search the Instagram content database")
-
-# class QueryInstagramDBOutput(BaseModel):
-#     response: str = Field(..., description="The response from the query")
-#     error_message: str = Field(default="", description="Error message if the operation failed")
-#     success: bool = Field(..., description="Whether the operation was successful")
-
 class QueryInstagramDBTool(BaseTool):
     name: str = "Query Instagram DB"
-    description: str = "Queries the Instagram content database with provided input"
-    args_schema: Type[QueryInstagramDBInput] = QueryInstagramDBInput
-    _app: Optional[App] = Field(default=None, exclude=True)
+    description: str = """Queries the Instagram content database with provided input query.
+    Example: 'How do the author's values impact their work?'"""
+    args_schema: Type[BaseModel] = QueryInstagramDBInput
     
-    model_config = {
-        'arbitrary_types_allowed': True
-    }
-    
+    _app: Optional[App] = PrivateAttr(default=None)
+
     def __init__(self, app: App):
         super().__init__()
         self._app = app
-    
-    def _run(self, query: Union[str, QueryInstagramDBInput], **kwargs) -> QueryInstagramDBOutput:
+
+    def _run(self, query: Union[str, Dict, QueryInstagramDBInput]) -> QueryInstagramDBOutput:
         try:
-            query_text = query.query if isinstance(query, QueryInstagramDBInput) else query
-            
-            enhanced_query = f"""Please analyze the following query about the Instagram content: {query_text}
+            # Convert string input to QueryInstagramDBInput
+            if isinstance(query, str):
+                query = QueryInstagramDBInput(query=query)
+            # Convert dict input to QueryInstagramDBInput
+            elif isinstance(query, dict):
+                query = QueryInstagramDBInput(**query)
+            # At this point, query should be QueryInstagramDBInput
+            if not isinstance(query, QueryInstagramDBInput):
+                raise ValueError("Invalid query format")
+
+            query_str = query.query
+            if not query_str.strip():
+                raise ValueError("Query string cannot be empty")
+
+            # Rest of your code remains the same
+            enhanced_query = f"""Please analyze the following query about the Instagram content: {query_str}
             Focus on providing specific examples and quotes from the posts."""
-            
+
             response = self._app.query(enhanced_query)
-            
             answer = response[0] if isinstance(response, tuple) else response
-            
+
             if not answer or (isinstance(answer, str) and answer.strip() == ""):
                 return QueryInstagramDBOutput(
                     response="No relevant content found in the processed posts.",
                     success=False,
                     error_message="No content found"
                 )
-            
-            formatted_response = f"""
-Answer: {answer}
 
-Note: This response is based on the processed Instagram content."""
-            
+            formatted_response = f"""Answer: {answer}\n\nNote: This response is based on the processed Instagram content."""
             return QueryInstagramDBOutput(response=formatted_response, success=True)
-        except ValueError as ve:
-            return QueryInstagramDBOutput(
-                response="",
-                success=False,
-                error_message="No content has been added to the database yet."
-            )
+
         except Exception as e:
+            logging.error(f"Error in QueryInstagramDBTool: {str(e)}")
             return QueryInstagramDBOutput(
                 response="",
                 success=False,
                 error_message=str(e)
             )
+# class QueryInstagramDBInput(BaseModel):
+#     """Input for QueryInstagramDB."""
+#     query: str = Field(..., description="The query to search the vector database")
+
+# class QueryInstagramDBOutput(BaseModel):
+#     """Output for QueryInstagramDB."""
+#     response: str = Field(..., description="The response from the query")
+#     error_message: str = Field(default="", description="Error message if the operation failed")
+#     success: bool = Field(..., description="Whether the operation was successful")
+
 # class QueryInstagramDBTool(BaseTool):
 #     name: str = "Query Instagram DB"
-#     description: str = "Queries the Instagram content database with provided input"
-#     args_schema: Type[QueryInstagramDBInput] = QueryInstagramDBInput
-#     app: App = Field(default=None, exclude=True)
+#     description: str = "Queries the Instagram content database with provided input query: 'The query to search the vector database'"
+#     args_schema: Type[BaseModel] = QueryInstagramDBInput
     
-#     # Private attributes
-#     _logger: logging.Logger = PrivateAttr(default_factory=lambda: logging.getLogger(__name__))
-    
-#     model_config = {
-#         'arbitrary_types_allowed': True
-#     }
-    
-#     def __init__(self, app: App, **data):
-#         super().__init__(**data)
-#         self.app = app
-    
-#     def _run(self, query: Union[str, QueryInstagramDBInput], **kwargs) -> QueryInstagramDBOutput:
+#     _app: Optional[App] = PrivateAttr(default=None)
+
+#     def __init__(self, app: App):
+#         super().__init__()
+#         self._app = app
+
+#     def _run(self, query: str, **kwargs) -> QueryInstagramDBOutput:
 #         try:
-#             # Handle both string and QueryInstagramDBInput inputs
-#             if isinstance(query, str):
-#                 query_text = query
-#             else:
-#                 query_text = query.query
-                
-#             # Add context to the query
-#             enhanced_query = f"""Please analyze the following query about the Instagram content: {query_text}
+#             # Enhance the query with specific instructions
+#             enhanced_query = f"""Please analyze the following query about the Instagram content: {query}
 #             Focus on providing specific examples and quotes from the posts."""
-            
-#             # Execute query
-#             response = self.app.query(enhanced_query)
-            
-#             # Handle tuple response (new embedchain version returns (answer, context))
-#             if isinstance(response, tuple):
-#                 answer = response[0]
-#             else:
-#                 answer = response
-                
+
+#             # Query the database
+#             response = self._app.query(enhanced_query)
+
+#             # Handle tuple response
+#             answer = response[0] if isinstance(response, tuple) else response
+
+#             # Check for empty response
 #             if not answer or (isinstance(answer, str) and answer.strip() == ""):
 #                 return QueryInstagramDBOutput(
 #                     response="No relevant content found in the processed posts.",
 #                     success=False,
 #                     error_message="No content found"
 #                 )
-                
-#             formatted_response = f"""
-# Answer: {answer}
 
-# Note: This response is based on the processed Instagram content."""
-            
-#             return QueryInstagramDBOutput(
-#                 response=formatted_response,
-#                 success=True
-#             )
-            
+#             # Format the response
+#             formatted_response = f"""Answer: {answer}\n\nNote: This response is based on the processed Instagram content."""
+
+#             return QueryInstagramDBOutput(response=formatted_response, success=True)
+
 #         except ValueError as ve:
 #             return QueryInstagramDBOutput(
 #                 response="",
@@ -153,16 +142,13 @@ Note: This response is based on the processed Instagram content."""
 #                 success=False,
 #                 error_message=str(e)
 #             )
-# from crewai_tools.tools.base_tool import BaseTool
-# from pydantic.v1 import BaseModel, Field, PrivateAttr
-# from typing import Type
-# from embedchain import App
-# import logging
 
 # class QueryInstagramDBInput(BaseModel):
-#     query: str = Field(..., description="The query to search the Instagram content database")
+#     """Input for QueryInstagramDB."""
+#     query: str = Field(..., description="The query to search the vector database")
 
 # class QueryInstagramDBOutput(BaseModel):
+#     """Output for QueryInstagramDB."""
 #     response: str = Field(..., description="The response from the query")
 #     error_message: str = Field(default="", description="Error message if the operation failed")
 #     success: bool = Field(..., description="Whether the operation was successful")
@@ -171,50 +157,40 @@ Note: This response is based on the processed Instagram content."""
 #     name: str = "Query Instagram DB"
 #     description: str = "Queries the Instagram content database with provided input"
 #     args_schema: Type[QueryInstagramDBInput] = QueryInstagramDBInput
-#     app: App = Field(default=None, exclude=True)
-
-#     # Private attributes
-#     _logger: logging.Logger = PrivateAttr(default_factory=lambda: logging.getLogger(__name__))
-
-#     class Config:
-#         arbitrary_types_allowed = True
-
-#     def __init__(self, app: App, **data):
-#         super().__init__(**data)
-#         self.app = app
-
-#     def _run(self, tool_input: QueryInstagramDBInput) -> QueryInstagramDBOutput:
+#     _app: Optional[App] = Field(default=None, exclude=True)
+    
+#     model_config = {
+#         'arbitrary_types_allowed': True
+#     }
+    
+#     def __init__(self, app: App):
+#         super().__init__()
+#         self._app = app
+    
+#     def _run(self, query: Union[str, QueryInstagramDBInput], **kwargs) -> QueryInstagramDBOutput:
 #         try:
-#             # Add context to the query
-#             enhanced_query = f"""Please analyze the following query about the Instagram content: {tool_input.query}
+#             query_text = query.query if isinstance(query, QueryInstagramDBInput) else query
+            
+#             enhanced_query = f"""Please analyze the following query about the Instagram content: {query_text}
 #             Focus on providing specific examples and quotes from the posts."""
             
-#             # Execute query
-#             response = self.app.query(enhanced_query)
+#             response = self._app.query(enhanced_query)
             
-#             # Handle tuple response (new embedchain version returns (answer, context))
-#             if isinstance(response, tuple):
-#                 answer = response[0]
-#             else:
-#                 answer = response
-                
+#             answer = response[0] if isinstance(response, tuple) else response
+            
 #             if not answer or (isinstance(answer, str) and answer.strip() == ""):
 #                 return QueryInstagramDBOutput(
 #                     response="No relevant content found in the processed posts.",
 #                     success=False,
 #                     error_message="No content found"
 #                 )
-                
+            
 #             formatted_response = f"""
 # Answer: {answer}
 
 # Note: This response is based on the processed Instagram content."""
             
-#             return QueryInstagramDBOutput(
-#                 response=formatted_response,
-#                 success=True
-#             )
-                
+#             return QueryInstagramDBOutput(response=formatted_response, success=True)
 #         except ValueError as ve:
 #             return QueryInstagramDBOutput(
 #                 response="",
