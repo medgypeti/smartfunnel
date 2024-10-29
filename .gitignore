@@ -44,3 +44,4 @@ Thumbs.db
 # Project specific
 chromadb/
 *.dbpoetry.lock
+src/.streamlit/secrets.toml
