@@ -251,7 +251,7 @@ class FetchToAddInstagramAudioTool(BaseTool):
                             processed_videos.append(post.video_url)
                     
                     post_count += 1
-                    if post_count >= 4:
+                    if post_count >= 30:
                         break
                         
                 except Exception as post_error:
