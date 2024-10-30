@@ -7,6 +7,8 @@ import json
 from smartfunnel.crew import LatestAiDevelopmentCrew
 import logging
 from typing import Optional
+from smartfunnel.tools.chroma_db_init import app_instance
+from smartfunnel.tools.chroma_db_init import cleanup_old_db
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -109,6 +111,8 @@ def process_creator_data(youtube_handle: str, instagram_username: str) -> Option
             "instagram_username": instagram_username
         }
         
+        # cleanup_old_db()
+
         crew_output = LatestAiDevelopmentCrew().crew().kickoff(inputs=inputs)
         return crew_output
     except Exception as e:

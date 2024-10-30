@@ -199,6 +199,9 @@ rag_tool = QueryVectorDBTool(app=app_instance)
 from smartfunnel.tools.InputValidationTool import InputValidationTool
 input_validation_tool = InputValidationTool()
 
+from smartfunnel.tools.ResettingTool import ResetDatabaseTool
+reset_database_tool = ResetDatabaseTool(app=app_instance)
+
 # First set the Instagram credentials (do this once at the start)
 # set_instagram_credentials("vladzieg", "Lommel1996+")
 
@@ -274,10 +277,20 @@ class LatestAiDevelopmentCrew():
     #     )
 
     @agent
+    def database_manager_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['database_manager_agent'],
+            tools=[reset_database_tool],
+            verbose=True,
+            allow_delegation=False,
+            llm=ChatOpenAI(model="gpt-4o-mini")
+        )
+
+    @agent
     def scrape_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['scrape_agent'],
-            tools=[fetch_relevant_videos_tool],  # Example of custom tool, loaded on the beginning of file
+            tools=[FetchRelevantVideosFromYouTubeChannelTool(result_as_answer=True)],  # Example of custom tool, loaded on the beginning of file
             verbose=True,
             allow_delegation=False,
             llm=ChatOpenAI(model="gpt-4o-mini")
@@ -317,7 +330,7 @@ class LatestAiDevelopmentCrew():
     def fallback_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['fallback_agent'],
-            tools=[rag_tool],
+            tools=[rag_tool, query_instagram_db_tool],
             verbose=True,
             allow_delegation=False,
             llm=ChatOpenAI(model="gpt-4o-mini")
@@ -348,7 +361,7 @@ class LatestAiDevelopmentCrew():
     def fetch_to_add_instagram_audio_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['fetch_to_add_instagram_audio_agent'],
-            tools=[fetch_to_add_instagram_audio_tool],
+            tools=[FetchToAddInstagramAudioTool(app=app_instance, result_as_answer=True)],
             verbose=True,
             allow_delegation=False,
             llm=ChatOpenAI(model="gpt-4o-mini")
@@ -358,7 +371,7 @@ class LatestAiDevelopmentCrew():
     def prompting_rag_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['prompting_rag_agent'],
-            tools=[PromptingRagTool()],
+            tools=[PromptingRagTool(result_as_answer=True)],
             verbose=True,
             allow_delegation=False,
             llm=ChatOpenAI(model="gpt-4o-mini")
@@ -391,10 +404,40 @@ class LatestAiDevelopmentCrew():
     #     )
 
     @task
+    def database_manager_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['database_manager_task'],
+            tools=[reset_database_tool]
+        )
+
+    @task
+    def fetch_and_add_instagram_audio_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['fetch_and_add_instagram_audio_task'],
+            tools=[FetchToAddInstagramAudioTool(app=app_instance, result_as_answer=True)]
+        )
+
+    @task
+    def find_instagram_information_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['find_instagram_information_task'],
+            tools=[query_instagram_db_tool],
+            output_pydantic=ContentCreatorInfo
+        )
+
+    @task
+    def follow_up_instagram_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['follow_up_instagram_task'],
+            tools=[query_instagram_db_tool],
+            output_pydantic=ContentCreatorInfo
+        )
+
+    @task
     def scrape_youtube_channel_task(self) -> Task:
         return Task(
             config=self.tasks_config['scrape_youtube_channel_task'],
-            tools=[fetch_relevant_videos_tool]
+            tools=[FetchRelevantVideosFromYouTubeChannelTool(result_as_answer=True)]
         )
 
     @task
@@ -415,32 +458,9 @@ class LatestAiDevelopmentCrew():
     def follow_up_task(self) -> Task:
         return Task(
             config=self.tasks_config['follow_up_task'],
-            expected_output="Updated ContentCreatorInfo object with additional information",
-            agent=self.follow_up_agent(),
+            # expected_output="Updated ContentCreatorInfo object with additional information",
+            # agent=self.follow_up_agent(),
             tools=[rag_tool],
-            output_pydantic=ContentCreatorInfo
-        )
-
-    @task
-    def fetch_and_add_instagram_audio_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['fetch_and_add_instagram_audio_task'],
-            tools=[fetch_to_add_instagram_audio_tool]
-        )
-
-    @task
-    def find_instagram_information_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['find_instagram_information_task'],
-            tools=[query_instagram_db_tool],
-            output_pydantic=ContentCreatorInfo
-        )
-
-    @task
-    def follow_up_instagram_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['follow_up_instagram_task'],
-            tools=[query_instagram_db_tool],
             output_pydantic=ContentCreatorInfo
         )
 

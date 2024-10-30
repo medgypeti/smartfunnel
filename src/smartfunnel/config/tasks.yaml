@@ -33,6 +33,13 @@
 #     - Validated input parameters
 #     - Flags indicating which workflows should run
 
+database_manager_task:
+  description: >
+    Reset the vector database when using the "Reset Database" tool.
+  expected_output: >
+    Successfully reset the vector database.
+  agent: database_manager_agent
+
 scrape_youtube_channel_task:
   description: >
     Scrape the 10 most relevant videos from the specified YouTube channel using the "Fetch Relevant Videos for Channel" tool.
@@ -49,7 +56,7 @@ scrape_youtube_channel_task:
 
 process_video_task:
   description: >
-    Process the extracted video urls from the previous task 
+    Process the extracted video urls from the previous task ONLY if {youtube_channel_handle} is found.
     and add them to the vector database.
     Ensure that each video is properly added to the vector database.
     All information must come directly from the searches. 
@@ -80,7 +87,9 @@ find_initial_information_task:
   description: >
     query the vector database to populate the `ContentCreatorInfo` model with 
     as much information as possible, using the "Query Vector DB" tool.
-    IMPORTANT: Move to the next task if {youtube_channel_handle} is NOT found. DO NOT try to guess or figure out the name of an account.        
+    IMPORTANT: Move to the next task if {youtube_channel_handle} is NOT found. DO NOT try to guess or figure out the name of an account.
+    IMPORTANT: The values from the expected_output example SHOULD NOT NEVER BE USED (e.g. ContentCreatorInfo(first_name="Antoine", last_name="Blanco", life_events=[
+        LifeEventObject(name="Early Childhood in Toulouse", etc...)). Only get information from the database!        
     Here is a query example: "What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?"
     IMPORTANT: if {youtube_channel_handle} not found, DO NOT use tool, and move on to the next task.
 
@@ -359,8 +368,10 @@ find_initial_information_task:
 follow_up_task:
   description: >
     You will pass queries to the tool "Query Vector DB" to populate the `ContentCreatorInfo` model. 
+    IMPORTANT: Move to the next task if {youtube_channel_handle} is NOT found. DO NOT try to guess or figure out the name of an account.
+    IMPORTANT: The values from the expected_output example SHOULD NOT NEVER BE USED (e.g. ContentCreatorInfo(first_name="Antoine", last_name="Blanco", life_events=[
+        LifeEventObject(name="Early Childhood in Toulouse", etc...)). Only get information from the database!
     Here is an example of the queries you should pass: "What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?"
-    IMPORTANT: Move to the next task if {youtube_channel_handle} is NOT found. DO NOT try to guess or figure out the name of an account.        
 
        You need to gather enough information about the content creator to be able to write 3000 words about them.
         Here is the `ContentCreatorInfo` model:
@@ -552,6 +563,8 @@ find_instagram_information_task:
   description: >
     Pass queries to the "Query Instagram DB" tool to populate the ContentCreatorInfo model.
     IMPORTANT: Move to the next task if {instagram_username} is NOT found.
+    IMPORTANT: The values from the expected_output example SHOULD NOT NEVER BE USED (e.g. ContentCreatorInfo(first_name="Antoine", last_name="Blanco", life_events=[
+        LifeEventObject(name="Early Childhood in Toulouse", etc...)). Only get information from the database!
 
     You need to gather enough information about the content creator to be able to write 3000 words about them.
     Here is the `ContentCreatorInfo` model:
@@ -733,6 +746,8 @@ follow_up_instagram_task:
   description: >
     Pass queries to the "Query Instagram DB" tool for missing ContentCreatorInfo data.
     IMPORTANT: Move to the next task if {instagram_username} is NOT found.
+    IMPORTANT: The values from the expected_output example SHOULD NOT NEVER BE USED (e.g. ContentCreatorInfo(first_name="Antoine", last_name="Blanco", life_events=[
+        LifeEventObject(name="Early Childhood in Toulouse", etc...)). Only get information from the database!
 
        You need to gather enough information about the content creator to be able to write 3000 words about them.
         Here is the `ContentCreatorInfo` model:

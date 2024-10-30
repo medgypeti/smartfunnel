@@ -140,7 +140,6 @@ class FetchToAddInstagramAudioTool(BaseTool):
                 username = os.getenv("INSTAGRAM_USERNAME", "the_smart_funnel")
                 password = os.getenv("INSTAGRAM_PASSWORD", "Firescan2024+")
 
-                # Try to load existing session
                 if os.path.exists(self.session_file):
                     try:
                         self.insta_loader.load_session_from_file(username, self.session_file)
@@ -149,9 +148,7 @@ class FetchToAddInstagramAudioTool(BaseTool):
                     except Exception as e:
                         logger.warning(f"Failed to load existing session: {str(e)}")
                 
-                # Perform fresh login
                 self.insta_loader.login(username, password)
-                # Save session for future use
                 self.insta_loader.save_session_to_file(self.session_file)
                 logger.info("Successfully created new Instagram session")
                 
@@ -167,6 +164,9 @@ class FetchToAddInstagramAudioTool(BaseTool):
         for attempt in range(max_retries):
             try:
                 return operation()
+            except instaloader.exceptions.ProfileNotExistsException:
+                logger.error("Profile does not exist")
+                return None
             except Exception as e:
                 last_error = e
                 if attempt + 1 < max_retries:
@@ -182,25 +182,20 @@ class FetchToAddInstagramAudioTool(BaseTool):
     def _process_video(self, video_url: str, post_metadata: dict) -> bool:
         with temporary_file_manager() as temp_audio_path:
             try:
-                # Download video
                 response = requests.get(video_url, timeout=30)
                 if response.status_code != 200:
                     raise Exception(f"Failed to download video: Status code {response.status_code}")
                 
-                # Process video data
                 video_buffer = io.BytesIO(response.content)
                 audio = AudioSegment.from_file(video_buffer, format="mp4")
                 
-                # Export as WAV
                 audio_buffer = io.BytesIO()
                 audio.export(audio_buffer, format="wav")
                 audio_buffer.seek(0)
                 
-                # Write to temporary file
                 with open(temp_audio_path, 'wb') as f:
                     f.write(audio_buffer.getvalue())
                 
-                # Add to embedchain
                 self.app.add(
                     temp_audio_path,
                     data_type="audio",
@@ -213,16 +208,11 @@ class FetchToAddInstagramAudioTool(BaseTool):
             except Exception as e:
                 logger.error(f"Error processing video {video_url}: {str(e)}")
                 return False
-    
-    def _run(self, instagram_username: str) -> FetchToAddInstagramAudioOutput:
-        # Reset the database if not initialized
+
+    def _run(self, instagram_username: str) -> str:
         if not self.is_initialized:
             self.initialize_for_new_creator()
             
-        processed_videos = []
-        errors = []
-        total_posts = 0
-        
         try:
             logger.info(f"Fetching posts for user: {instagram_username}")
             
@@ -230,8 +220,13 @@ class FetchToAddInstagramAudioTool(BaseTool):
                 loader = self._get_instaloader_instance()
                 return instaloader.Profile.from_username(loader.context, instagram_username)
             
-            # Get profile with retry logic
             profile = self._retry_operation(get_profile)
+            if profile is None:
+                return "Instagram profile not found"
+                
+            processed_videos = []
+            errors = []
+            total_posts = 0
             post_count = 0
             
             for post in profile.get_posts():
@@ -251,7 +246,7 @@ class FetchToAddInstagramAudioTool(BaseTool):
                             processed_videos.append(post.video_url)
                     
                     post_count += 1
-                    if post_count >= 30:
+                    if post_count >= 3:
                         break
                         
                 except Exception as post_error:
@@ -263,26 +258,91 @@ class FetchToAddInstagramAudioTool(BaseTool):
             success = len(processed_videos) > 0
             error_message = "; ".join(errors) if errors else ""
             
-            logger.info(f"Processed {len(processed_videos)} videos out of {total_posts} total posts")
+            result = {
+                "processed_videos": processed_videos,
+                "success": success,
+                "error_message": error_message,
+                "total_posts_found": total_posts,
+                "total_videos_processed": len(processed_videos)
+            }
             
-            return FetchToAddInstagramAudioOutput(
-                processed_videos=processed_videos,
-                success=success,
-                error_message=error_message,
-                total_posts_found=total_posts,
-                total_videos_processed=len(processed_videos)
-            )
+            return f"Successfully processed {len(processed_videos)} videos out of {total_posts} total posts"
 
         except Exception as e:
             error_message = f"Error in fetch and process operation: {str(e)}"
             logger.error(error_message)
-            return FetchToAddInstagramAudioOutput(
-                processed_videos=[],
-                success=False,
-                error_message=error_message,
-                total_posts_found=total_posts,
-                total_videos_processed=0
-            )
+            return error_message    
+    # def _run(self, instagram_username: str) -> Union[FetchToAddInstagramAudioOutput, None]:
+    #     if not self.is_initialized:
+    #         self.initialize_for_new_creator()
+            
+    #     processed_videos = []
+    #     errors = []
+    #     total_posts = 0
+        
+    #     try:
+    #         logger.info(f"Fetching posts for user: {instagram_username}")
+            
+    #         def get_profile():
+    #             loader = self._get_instaloader_instance()
+    #             return instaloader.Profile.from_username(loader.context, instagram_username)
+            
+    #         profile = self._retry_operation(get_profile)
+    #         if profile is None:
+    #             logger.error(f"Instagram profile not found: {instagram_username}")
+    #             return None
+                
+    #         post_count = 0
+            
+    #         for post in profile.get_posts():
+    #             total_posts += 1
+                
+    #             try:
+    #                 if post.is_video and post.video_url:
+    #                     post_metadata = {
+    #                         "source": f"https://www.instagram.com/p/{post.shortcode}/",
+    #                         "caption": post.caption if post.caption else "",
+    #                         "timestamp": post.date_utc.isoformat(),
+    #                         "likes": post.likes,
+    #                         "post_id": post.shortcode
+    #                     }
+                        
+    #                     if self._process_video(post.video_url, post_metadata):
+    #                         processed_videos.append(post.video_url)
+                    
+    #                 post_count += 1
+    #                 if post_count >= 3:
+    #                     break
+                        
+    #             except Exception as post_error:
+    #                 error_msg = f"Error processing post {post.shortcode}: {str(post_error)}"
+    #                 logger.error(error_msg)
+    #                 errors.append(error_msg)
+    #                 continue
+
+    #         success = len(processed_videos) > 0
+    #         error_message = "; ".join(errors) if errors else ""
+            
+    #         logger.info(f"Processed {len(processed_videos)} videos out of {total_posts} total posts")
+            
+    #         return FetchToAddInstagramAudioOutput(
+    #             processed_videos=processed_videos,
+    #             success=success,
+    #             error_message=error_message,
+    #             total_posts_found=total_posts,
+    #             total_videos_processed=len(processed_videos)
+    #         )
+
+    #     except Exception as e:
+    #         error_message = f"Error in fetch and process operation: {str(e)}"
+    #         logger.error(error_message)
+    #         return FetchToAddInstagramAudioOutput(
+    #             processed_videos=[],
+    #             success=False,
+    #             error_message=error_message,
+    #             total_posts_found=total_posts,
+    #             total_videos_processed=0
+    #         )
 
     def _handle_error(self, error: Exception) -> str:
         """Handle errors that occur during tool execution."""
@@ -296,7 +356,6 @@ class FetchToAddInstagramAudioTool(BaseTool):
         else:
             return f"An error occurred: {error_message}"
 
-
 # class FetchToAddInstagramAudioTool(BaseTool):
 #     """Tool that fetches Instagram posts and processes their audio for the vector database."""
 #     name: str = "Fetch and Process Instagram Audio"
@@ -304,19 +363,24 @@ class FetchToAddInstagramAudioTool(BaseTool):
 #     args_schema: Type[BaseModel] = FetchToAddInstagramAudioInput
 #     insta_loader: Any = Field(default=None, exclude=True)
 #     app: Any = Field(default=None, exclude=True)
-# # class FetchToAddInstagramAudioTool(BaseTool):
-# #     """Tool that fetches Instagram posts and processes their audio for the vector database."""
-# #     name: str = "Fetch and Process Instagram Audio"
-# #     description: str = "Fetches Instagram posts and adds video audio to the vector database"
-# #     args_schema: Type[BaseModel] = FetchToAddInstagramAudioInput
-# #     insta_loader: Any = Field(default=None, exclude=True)
-# #     app: Any = Field(default=None, exclude=True)
-# #     session_file: str = Field(default=None, exclude=True)  # Added this line
+#     is_initialized: bool = Field(default=False, exclude=True)
+#     session_file: str = Field(default="", exclude=True)
 
 #     def __init__(self, app: App, **data):
 #         super().__init__(**data)
 #         self.app = app
-#         self._session_file = os.path.join(tempfile.gettempdir(), "instagram_session")
+#         self.session_file = os.path.join(tempfile.gettempdir(), "instagram_session")
+#         self.is_initialized = False
+
+#     def initialize_for_new_creator(self):
+#         """Reset the vector database before starting analysis for a new creator."""
+#         logger.info("Initializing vector database for new creator")
+#         if self.app is not None:
+#             self.app.reset()
+#             logger.info("Vector database reset successfully")
+#         else:
+#             logger.error("No app instance available for reset")
+#         self.is_initialized = True
 
 #     def _get_instaloader_instance(self):
 #         """Get or create a shared Instaloader instance with session management."""
@@ -327,19 +391,18 @@ class FetchToAddInstagramAudioTool(BaseTool):
 #                 password = os.getenv("INSTAGRAM_PASSWORD", "Firescan2024+")
 
 #                 # Try to load existing session
-#                 if os.path.exists(self._session_file):
+#                 if os.path.exists(self.session_file):
 #                     try:
-#                         self.insta_loader.load_session_from_file(username, self._session_file)
+#                         self.insta_loader.load_session_from_file(username, self.session_file)
 #                         logger.info("Successfully loaded existing Instagram session")
 #                         return self.insta_loader
 #                     except Exception as e:
 #                         logger.warning(f"Failed to load existing session: {str(e)}")
-#                         # Session might be invalid, continue to fresh login
                 
 #                 # Perform fresh login
 #                 self.insta_loader.login(username, password)
 #                 # Save session for future use
-#                 self.insta_loader.save_session_to_file(self._session_file)
+#                 self.insta_loader.save_session_to_file(self.session_file)
 #                 logger.info("Successfully created new Instagram session")
                 
 #             except Exception as e:
@@ -358,33 +421,14 @@ class FetchToAddInstagramAudioTool(BaseTool):
 #                 last_error = e
 #                 if attempt + 1 < max_retries:
 #                     logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-#                     time.sleep(delay * (attempt + 1))  # Incremental backoff
+#                     time.sleep(delay * (attempt + 1))
                     
-#                     # If it's a login-related error, try to refresh session
 #                     if "login" in str(e).lower() or "429" in str(e):
 #                         self.insta_loader = None
 #                         self._get_instaloader_instance()
                         
 #         raise last_error
 
-#     def _process_audio(self, audio_buffer: io.BytesIO) -> str:
-#         """Save audio to temporary file and return the path."""
-#         temp_path = f"temp_audio_{datetime.now().timestamp()}.wav"
-#         try:
-#             with open(temp_path, 'wb') as f:
-#                 f.write(audio_buffer.getvalue())
-#             return temp_path
-#         except Exception as e:
-#             raise Exception(f"Error saving audio: {str(e)}")
-
-#     def _cleanup_temp_file(self, file_path: str):
-#         """Clean up temporary audio file."""
-#         try:
-#             if os.path.exists(file_path):
-#                 os.remove(file_path)
-#         except Exception as e:
-#             logger.warning(f"Error cleaning up temporary file {file_path}: {str(e)}")
-    
 #     def _process_video(self, video_url: str, post_metadata: dict) -> bool:
 #         with temporary_file_manager() as temp_audio_path:
 #             try:
@@ -419,8 +463,12 @@ class FetchToAddInstagramAudioTool(BaseTool):
 #             except Exception as e:
 #                 logger.error(f"Error processing video {video_url}: {str(e)}")
 #                 return False
-
+    
 #     def _run(self, instagram_username: str) -> FetchToAddInstagramAudioOutput:
+#         # Reset the database if not initialized
+#         if not self.is_initialized:
+#             self.initialize_for_new_creator()
+            
 #         processed_videos = []
 #         errors = []
 #         total_posts = 0
@@ -453,7 +501,7 @@ class FetchToAddInstagramAudioTool(BaseTool):
 #                             processed_videos.append(post.video_url)
                     
 #                     post_count += 1
-#                     if post_count >= 50:  # Limit to 6 posts as in original
+#                     if post_count >= 30:
 #                         break
                         
 #                 except Exception as post_error:
