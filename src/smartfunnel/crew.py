@@ -371,7 +371,7 @@ class LatestAiDevelopmentCrew():
     def prompting_rag_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['prompting_rag_agent'],
-            tools=[PromptingRagTool(result_as_answer=True)],
+            tools=[PromptingRagTool()],
             verbose=True,
             allow_delegation=False,
             llm=ChatOpenAI(model="gpt-4o-mini")
@@ -476,7 +476,7 @@ class LatestAiDevelopmentCrew():
     def prompting_rag_task(self) -> Task:
         return Task(
             config=self.tasks_config['prompting_rag_task'],
-            tools=[PromptingRagTool(result_as_answer=True)],
+            tools=[PromptingRagTool()],
             output_file="prompting_rag_task_output.txt"
         )
 
