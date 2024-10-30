@@ -137,8 +137,8 @@ class FetchToAddInstagramAudioTool(BaseTool):
         if not self.insta_loader:
             self.insta_loader = instaloader.Instaloader()
             try:
-                username = os.getenv("INSTAGRAM_USERNAME", "the_smart_funnel")
-                password = os.getenv("INSTAGRAM_PASSWORD", "Firescan2024+")
+                username = st.secrets["INSTAGRAM_USERNAME"]
+                password = st.secrets["INSTAGRAM_PASSWORD"]
 
                 if os.path.exists(self.session_file):
                     try:
