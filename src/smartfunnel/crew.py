@@ -313,7 +313,7 @@ class LatestAiDevelopmentCrew():
             tools=[rag_tool, query_instagram_db_tool],
             verbose=True,
             allow_delegation=False,
-            llm=ChatOpenAI(model="gpt-4o-mini")
+            llm=ChatOpenAI(model="gpt-4o")
         )
     
     @agent
@@ -323,7 +323,7 @@ class LatestAiDevelopmentCrew():
             tools=[rag_tool, query_instagram_db_tool],
             verbose=True,
             allow_delegation=False,
-            llm=ChatOpenAI(model="gpt-4o-mini")
+            llm=ChatOpenAI(model="gpt-4o")
         )
     
     @agent
@@ -333,7 +333,7 @@ class LatestAiDevelopmentCrew():
             tools=[rag_tool, query_instagram_db_tool],
             verbose=True,
             allow_delegation=False,
-            llm=ChatOpenAI(model="gpt-4o-mini")
+            llm=ChatOpenAI(model="gpt-4o")
         )
 
     # Commented out Instagram agents
@@ -374,7 +374,7 @@ class LatestAiDevelopmentCrew():
             tools=[PromptingRagTool()],
             verbose=True,
             allow_delegation=False,
-            llm=ChatOpenAI(model="gpt-4o-mini")
+            llm=ChatOpenAI(model="gpt-4o")
         )
 
     # @task
