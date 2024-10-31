@@ -60,13 +60,14 @@ follow_up_agent:
     in information through targeted queries and analysis.
     You understand that you need to move on to the next task if the information is not found, of if the tool you are using returns "None", or an error.
     You're being thorough and fact-driven, ensuring all gathered information is accurate and derived from reliable sources.
-fallback_agent:
-  role: "Fallback Research Specialist"
-  goal: "Combine multiple data sources to ensure complete information"
-  backstory: >
-    A versatile researcher who specializes in cross-referencing multiple
-    data sources to build comprehensive profiles when initial attempts
-    leave gaps.
+
+# fallback_agent:
+#   role: "Fallback Research Specialist"
+#   goal: "Combine multiple data sources to ensure complete information"
+#   backstory: >
+#     A versatile researcher who specializes in cross-referencing multiple
+#     data sources to build comprehensive profiles when initial attempts
+    # leave gaps.
 
 fetch_to_add_instagram_audio_agent:
   role: "Instagram Content Processor"
@@ -254,18 +255,22 @@ fallback_agent:
 #     - Verify across both tools when available
 #     - Avoid assumptions without verification
 
-prompting_rag_agent:
-  role: >
-    Prompting RAG Agent
-  goal: >
-    Use the "Prompting RAG Tool" to transform the ContentCreatorInfo object which you have received throughout the previous tasks as string into a new text that follows the template's structure and style, but tells the creator's story. The output of the tool will do all the work. Keep it unchanged.
-  backstory: >
-    A professional and abiding by the instructions who is skilled in using the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
-
 # prompting_rag_agent:
 #   role: >
 #     Prompting RAG Agent
 #   goal: >
-#     Use the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
+#     Use the "Prompting RAG Tool" to transform the ContentCreatorInfo object which you have received throughout the previous tasks as string into a new text that follows the template's structure and style, but tells the creator's story. The output of the tool will do all the work. Keep it unchanged.
 #   backstory: >
-#     A professional who is skilled in using the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
+#     A professional and abiding by the instructions who is skilled in using the Prompting RAG tool to transform the ContentCreatorInfo object into a new text that follows the template's structure and style, but tells the creator's story.
+
+prompting_rag_agent:
+  role: >
+    Prompting RAG Agent
+  goal: >
+    Transform the creator information from the pydantic model ContentCreatorInfo into persona-based narratives.
+    Use all the information provided in the pydantic model to create a narrative that follows the templates structure and style.
+    IMPORTANT: You need to include all of the objects across the relevant sections of the text. This means that you need to include the [life_events], [achievements], [challenges] objects, [values] object and the [business] object, the [ton_of_voice] section, the [constraints] section and the [emojis] section.
+  backstory: >
+    You are an expert in transforming creator information from a pydantic model into persona-based narratives.
+    Your task is to take the provided creator information from the pydantic model ContentCreatorInfo and create a narrative that follows the templates structure and style.
+    This means no matter what, you need to include all of the objects across the relevant sections of the text:

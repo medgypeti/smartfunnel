@@ -326,15 +326,15 @@ class LatestAiDevelopmentCrew():
             llm=ChatOpenAI(model="gpt-4o")
         )
     
-    @agent
-    def fallback_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['fallback_agent'],
-            tools=[rag_tool, query_instagram_db_tool],
-            verbose=True,
-            allow_delegation=False,
-            llm=ChatOpenAI(model="gpt-4o")
-        )
+    # @agent
+    # def fallback_agent(self) -> Agent:
+    #     return Agent(
+    #         config=self.agents_config['fallback_agent'],
+    #         tools=[rag_tool, query_instagram_db_tool],
+    #         verbose=True,
+    #         allow_delegation=False,
+    #         llm=ChatOpenAI(model="gpt-4o")
+    #     )
 
     # Commented out Instagram agents
     # @agent
@@ -464,20 +464,21 @@ class LatestAiDevelopmentCrew():
             output_pydantic=ContentCreatorInfo
         )
 
-    @task
-    def fallback_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['fallback_task'],
-            tools=[rag_tool, query_instagram_db_tool],
-            output_pydantic=ContentCreatorInfo
-        )
+    # @task
+    # def fallback_task(self) -> Task:
+    #     return Task(
+    #         config=self.tasks_config['fallback_task'],
+    #         tools=[rag_tool, query_instagram_db_tool],
+    #         output_pydantic=ContentCreatorInfo
+    #     )
 
     @task
     def prompting_rag_task(self) -> Task:
         return Task(
             config=self.tasks_config['prompting_rag_task'],
             tools=[PromptingRagTool()],
-            output_file="prompting_rag_task_output.txt"
+            output_file="prompting_rag_task_output.txt",
+            context=[self.find_initial_information_task(), self.follow_up_task(), self.find_instagram_information_task(), self.follow_up_instagram_task()]
         )
 
     # @task
