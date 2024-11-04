@@ -1,0 +1,974 @@
+# Database Management
+database_manager_task:
+  description: Reset the vector database when using the "Reset Database" tool.
+  expected_output: Successfully reset the vector database.
+  agent: database_manager_agent
+
+# YouTube Channel Scraping
+scrape_youtube_channel_task:
+  description: >
+    Scrape the 10 most relevant videos from the specified YouTube channel using the "Fetch Relevant Videos for Channel" tool.
+    IMPORTANT: 
+    - If {youtube_channel_handle} not found, DO NOT use tool, and move on to the next task
+    - If {youtube_channel_handle} is found, extract relevant information about the content of the most relevant ten videos
+    - Ensure all information comes directly from the YouTube channel and videos
+    - Do not make up any information
+  expected_output: Extract relevant information about the content of the ten most relevant videos from the {youtube_channel_handle} YouTube channel.
+  agent: scrape_agent
+
+# Video Processing
+process_video_task:
+  description: >
+    Process the extracted video urls from the previous task ONLY if {youtube_channel_handle} is found.
+    - Add videos to the vector database
+    - Ensure each video is properly added
+    - All information must come directly from the searches
+    - Do not make up any information
+    IMPORTANT: if {youtube_channel_handle} not found, DO NOT use tool "Add Video to Vector DB", and move on to the next task.
+  expected_output: Successfully add the videos to the vector database.
+  agent: vector_db_agent
+
+# Content Creator Research Tasks
+# Shared Model Definition
+# Life Events Research
+find_life_events_task:
+  description: >
+    Find the life events of the content creator using the "Query Vector DB" tool.
+    
+    Model Definitions:
+    ```
+    class LifeEventObject(BaseModel):
+        name: str = Field(..., description="Name or title of the life event, e.g., 'Childhood'")
+    
+    class ContentCreatorInfo(BaseModel):
+        life_events: List[LifeEventObject] = Field(..., description="List of significant life events that shaped the creator's journey")
+        business: BusinessObject = Field(..., description="Information about the creator's business or primary professional venture")
+        values: List[ValueObject] = Field(..., description="List of the creator's core values that guide their work and life")
+        challenges: List[ChallengeObject] = Field(..., description="List of significant challenges faced by the creator and how they overcame them")
+        achievements: List[AchievementObject] = Field(..., description="List of the creator's notable achievements and milestones")
+        first_name: Optional[str] = Field(None, description="The first name of the content creator")
+        last_name: Optional[str] = Field(None, description="The last name of the content creator")
+    ```
+    
+    Query Guidelines:
+    - "What moments were pivotal?"
+    - "How did their past shape them?"
+    - "What experiences influenced their business?"
+    - "What is the first name of the author?"
+    - "What is the last name of the author?"
+    
+    Rules:
+    - Use plain text queries only
+    - One query at a time
+    - Keep focused and specific
+    - Each Field should be 4-5 sentences long with real video quotes
+    - All information must come from searches
+    - Do not make up information
+    - If information is missing, leave as None
+    
+    Required Query: "What are the life events/circumstances that shaped the character of the author throughout his life?"
+  expected_output: List of LifeEventObject objects for the ContentCreatorInfo model's life_events field.
+  agent: general_research_agent
+
+# Business Information Research
+find_business_task:
+  description: >
+    Find the business of the content creator using the "Query Vector DB" tool.
+    
+    Model Definition:
+    ```
+    class BusinessObject(BaseModel):
+        name: str = Field(..., description="Name of the business")
+        description: str = Field(..., description="Description of the business")
+        genesis: str = Field(..., description="How the business started")
+    
+    class ContentCreatorInfo(BaseModel):
+        life_events: List[LifeEventObject] = Field(..., description="List of significant life events that shaped the creator's journey")
+        business: BusinessObject = Field(..., description="Information about the creator's business or primary professional venture")
+        values: List[ValueObject] = Field(..., description="List of the creator's core values that guide their work and life")
+        challenges: List[ChallengeObject] = Field(..., description="List of significant challenges faced by the creator and how they overcame them")
+        achievements: List[AchievementObject] = Field(..., description="List of the creator's notable achievements and milestones")
+        first_name: Optional[str] = Field(None, description="The first name of the content creator")
+        last_name: Optional[str] = Field(None, description="The last name of the content creator")
+    ```
+    
+    Query Guidelines:
+    - "What makes their business unique?"
+    - "How do they serve clients?"
+    
+    Required Queries:
+    - "What was the context/environment that triggered the author to decide to change his life around and launch this business?"
+    - "What are the tips mentioned in the video that I can implement to grow my business?"
+    - "What are the key characteristics of the business of the author and the services I can buy from him?"
+    
+    Rules follow same format as life_events_task.
+  expected_output: BusinessObject for the ContentCreatorInfo model's business field.
+  agent: general_research_agent
+
+# Values Research
+find_values_task:
+  description: >
+    Find the values of the content creator using the "Query Vector DB" tool.
+    
+    Model Definition:
+    ```
+    class ValueObject(BaseModel):
+        name: str = Field(..., description="The name of the value")
+        origin: str = Field(..., description="The origin or development of the value")
+        impact_today: str = Field(..., description="How the value impacts how the creator works today")
+    
+    class ContentCreatorInfo(BaseModel):
+        life_events: List[LifeEventObject] = Field(..., description="List of significant life events that shaped the creator's journey")
+        business: BusinessObject = Field(..., description="Information about the creator's business or primary professional venture")
+        values: List[ValueObject] = Field(..., description="List of the creator's core values that guide their work and life")
+        challenges: List[ChallengeObject] = Field(..., description="List of significant challenges faced by the creator and how they overcame them")
+        achievements: List[AchievementObject] = Field(..., description="List of the creator's notable achievements and milestones")
+        first_name: Optional[str] = Field(None, description="The first name of the content creator")
+        last_name: Optional[str] = Field(None, description="The last name of the content creator")
+    ```
+    
+    Query Guidelines:
+    - "What core values does the author demonstrate?"
+    - "How does their background influence their values?"
+    - "How do their values impact their work?"
+    
+    Required Query: "What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?"
+    
+    Rules follow same format as life_events_task.
+  expected_output: List of ValueObject objects for the ContentCreatorInfo model's values field.
+  agent: general_research_agent
+
+# Challenges Research
+find_challenges_task:
+  description: >
+    Find the challenges of the content creator using the "Query Vector DB" tool.
+    
+    Model Definition:
+    ```
+    class ChallengeObject(BaseModel):
+        description: str = Field(..., description="Description of the challenge")
+        learnings: str = Field(..., description="The lessons the creator learned from the challenge")
+    
+    class ContentCreatorInfo(BaseModel):
+        life_events: List[LifeEventObject] = Field(..., description="List of significant life events that shaped the creator's journey")
+        business: BusinessObject = Field(..., description="Information about the creator's business or primary professional venture")
+        values: List[ValueObject] = Field(..., description="List of the creator's core values that guide their work and life")
+        challenges: List[ChallengeObject] = Field(..., description="List of significant challenges faced by the creator and how they overcame them")
+        achievements: List[AchievementObject] = Field(..., description="List of the creator's notable achievements and milestones")
+        first_name: Optional[str] = Field(None, description="The first name of the content creator")
+        last_name: Optional[str] = Field(None, description="The last name of the content creator")
+    ```
+    
+    Required Queries:
+    - "What obstacles has the author overcome?"
+    - "What lessons came from their setbacks?"
+    - "How has their journey shaped their approach?"
+    - "What are the challenges that the author faced and how did he overcome them?"
+    
+    Rules follow same format as life_events_task.
+  expected_output: List of ChallengeObject objects for the ContentCreatorInfo model's challenges field.
+  agent: general_research_agent
+
+# Achievements Research
+find_achievements_task:
+  description: >
+    Find the achievements of the content creator using the "Query Vector DB" tool.
+    
+    Model Definition:
+    ```
+    class AchievementObject(BaseModel):
+        description: str = Field(..., description="Description of the achievement")
+        
+        @classmethod
+        def default(cls) -> 'AchievementObject':
+            return cls(description="")
+    
+    class ContentCreatorInfo(BaseModel):
+        life_events: List[LifeEventObject] = Field(..., description="List of significant life events that shaped the creator's journey")
+        business: BusinessObject = Field(..., description="Information about the creator's business or primary professional venture")
+        values: List[ValueObject] = Field(..., description="List of the creator's core values that guide their work and life")
+        challenges: List[ChallengeObject] = Field(..., description="List of significant challenges faced by the creator and how they overcame them")
+        achievements: List[AchievementObject] = Field(..., description="List of the creator's notable achievements and milestones")
+        first_name: Optional[str] = Field(None, description="The first name of the content creator")
+        last_name: Optional[str] = Field(None, description="The last name of the content creator")
+    ```
+    
+    Required Queries:
+    - "What are their significant achievements?"
+    - "What milestones show their success?"
+    - "What metrics demonstrate their growth?"
+    - "What are the key achievements that the author achieved that gives him more credibility and successful?"
+    
+    Rules follow same format as life_events_task.
+  expected_output: List of AchievementObject objects for the ContentCreatorInfo model's achievements field.
+  agent: general_research_agent
+
+
+# database_manager_task:
+#   description: >
+#     Reset the vector database when using the "Reset Database" tool.
+#   expected_output: >
+#     Successfully reset the vector database.
+#   agent: database_manager_agent
+
+# scrape_youtube_channel_task:
+#   description: >
+#     Scrape the 10 most relevant videos from the specified YouTube channel using the "Fetch Relevant Videos for Channel" tool.
+#     IMPORTANT: if {youtube_channel_handle} not found, DO NOT use tool, and move on to the next task.
+#     If {youtube_channel_handle} is found, extract relevant information about the content of the most relevant ten videos.
+#     Ensure that all information comes directly from the YouTube channel and videos. 
+#     Do not make up any information.
+#   expected_output: >
+#     Extract relevant information about the content of the ten most relevant videos 
+#     from the {youtube_channel_handle} YouTube channel.
+#   agent: scrape_agent
+
+# process_video_task:
+#   description: >
+#     Process the extracted video urls from the previous task ONLY if {youtube_channel_handle} is found.
+#     and add them to the vector database.
+#     Ensure that each video is properly added to the vector database.
+#     All information must come directly from the searches. 
+#     Do not make up any information.
+#     IMPORTANT: if {youtube_channel_handle} not found, DO NOT use tool "Add Video to Vector DB", and move on to the next task.
+#   expected_output: >
+#     Successfully add the videos to the vector database.
+#   agent: vector_db_agent
+
+# find_life_events_task:
+#   description: >
+#     Find the life events of the content creator using the "Query Vector DB" tool.
+#     Here is a query example: "What are the life events/circumstances that shaped the character of the author throughout his life?"
+#     You need to gather several life event objects. Here is an example of the `LifeEventObject` model:
+#     ```
+#     class LifeEventObject(BaseModel):
+#         name: str = Field(
+#             ..., 
+#             description="Name or title of the life event, e.g., 'Childhood'"
+#         )
+#     ```
+#     query guidelines:
+#     - "What moments were pivotal?"
+#     - "How did their past shape them?"
+#     - "What experiences influenced their business?"
+
+#     For first name and last name:
+#     - "What is the first name of the author?"
+#     - "What is the last name of the author?"
+
+#     Rules for queries:
+#     - Use plain text queries only
+#     - One query at a time
+#     - Keep focused and specific
+
+#     IMPORTANT: Pass following list of queries to "Query Vector DB" tool to populate the `ContentCreatorInfo` model:
+#     query:"What are the life events/circumstances that shaped the character of the author throughout his life?" to populate "LifeEventObject" information.
+#     query: What is the first name, last name of author of the video? If looking for contact details.    
+#     If any information is missing, leave the value as None.
+#     All information must come directly from the searches. 
+#     Do not make up any information.
+#     Rephrase and re-query to the vector database as necessary to obtain all needed information.
+#     Each Field in the `LifeEvents` model should be 4-5 sentences long. They should be supported by real quotes from the video.
+#     The output should be a list of LifeEventObject objects. NOTHING ELSE. to populate the `life_events` field in the `ContentCreatorInfo` model.
+#     ```
+#     class ContentCreatorInfo(BaseModel):
+#                   life_events: List[LifeEventObject] = Field(
+#                       ..., 
+#                       description="List of significant life events that shaped the creator's journey"
+#                   )
+#                   business: BusinessObject = Field(
+#                       ..., 
+#                       description="Information about the creator's business or primary professional venture"
+#                   )
+#                   values: List[ValueObject] = Field(
+#                       ..., 
+#                       description="List of the creator's core values that guide their work and life"
+#                   )
+#                   challenges: List[ChallengeObject] = Field(
+#                       ..., 
+#                       description="List of significant challenges faced by the creator and how they overcame them"
+#                   )
+#                   achievements: List[AchievementObject] = Field(
+#                       ..., 
+#                       description="List of the creator's notable achievements and milestones"
+#                   )
+#                   first_name: Optional[str] = Field(
+#                       None, 
+#                       description="The first name of the content creator"
+#                   )
+#                   last_name: Optional[str] = Field(
+#                       None, 
+#                       description="The last name of the content creator"
+#                   )
+#     ```
+
+#   expected_output: >
+#     The list of LifeEventObject objects populated in the `life_events` field in the `ContentCreatorInfo` model.
+#   agent: general_research_agent
+
+# find_business_task:
+#   description: >
+#     Find the business of the content creator using the "Query Vector DB" tool.
+#     Here is a query example: "What are the life events/circumstances that shaped the character of the author throughout his life?"
+#     You need to gather BusinessObject. Here is an example of the `BusinessObject` model:
+#     ```
+#     class BusinessObject(BaseModel):
+#         name: str = Field(
+#             ..., 
+#             description="Name of the business, e.g., 'Agency \"On Air\"'"
+#         )
+#         description: str = Field(
+#             ..., 
+#             description="Description of the business, e.g., 'Marketing strategist to drive innovation in large corporates'"
+#         )
+#         genesis: str = Field(
+#             ..., 
+#             description="How the business started, e.g., 'Started as a freelancer, building out the skills to turn them into an agency in 2010'"
+#         )
+#     ```
+#     query guidelines:
+#     - "What makes their business unique?"
+#     - "How do they serve clients?"
+
+#     For first name and last name:
+#     - "What is the first name of the author?"
+#     - "What is the last name of the author?"
+
+#     Rules for queries:
+#     - Use plain text queries only
+#     - One query at a time
+#     - Keep focused and specific
+
+#     IMPORTANT: Pass following list of queries to "Query Vector DB" tool to populate the `ContentCreatorInfo` model:
+#     query:"What was the context/environment that triggered the author to decide to change his life around and launch this business?" to populate "BusinessObject" information.
+#     query: "What are the tips mentioned in the video that I can implement to grow my business?" to populate "BusinessObject" information.
+#     query: "What are the key characteristics of the business of the author and the services I can buy from him?" to populate "BusinessObject" information.
+#     If any information is missing, leave the value as None.
+#     All information must come directly from the searches. 
+#     Do not make up any information.
+#     Rephrase and re-query to the vector database as necessary to obtain all needed information.
+#     Each Field in the `BusinessObject` model should be 4-5 sentences long. They should be supported by real quotes from the video.
+#     The output should be a list of BusinessObject objects. NOTHING ELSE. to populate the `business` field in the `ContentCreatorInfo` model.
+#     ```
+#     class ContentCreatorInfo(BaseModel):
+#                   life_events: List[LifeEventObject] = Field(
+#                       ..., 
+#                       description="List of significant life events that shaped the creator's journey"
+#                   )
+#                   business: BusinessObject = Field(
+#                       ..., 
+#                       description="Information about the creator's business or primary professional venture"
+#                   )
+#                   values: List[ValueObject] = Field(
+#                       ..., 
+#                       description="List of the creator's core values that guide their work and life"
+#                   )
+#                   challenges: List[ChallengeObject] = Field(
+#                       ..., 
+#                       description="List of significant challenges faced by the creator and how they overcame them"
+#                   )
+#                   achievements: List[AchievementObject] = Field(
+#                       ..., 
+#                       description="List of the creator's notable achievements and milestones"
+#                   )
+#                   first_name: Optional[str] = Field(
+#                       None, 
+#                       description="The first name of the content creator"
+#                   )
+#                   last_name: Optional[str] = Field(
+#                       None, 
+#                       description="The last name of the content creator"
+#                   )
+#     ```
+
+#   expected_output: >
+#     The list of BusinessObject objects populated in the `business` field in the `ContentCreatorInfo` model.
+#   agent: general_research_agent
+
+# find_values_task:
+#   description: >
+#     Find the values of the content creator using the "Query Vector DB" tool.
+#     Here is a query example: "What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?"
+#     You need to gather several value objects. Here is an example of the `ValueObject` model:
+#     ```
+#     class ValueObject(BaseModel):
+#         name: str = Field(
+#             ..., 
+#             description="The name of the value, e.g., 'perseverance'"
+#         )
+#         origin: str = Field(
+#             ..., 
+#             description="The origin or development of the value, e.g., 'Developed this trait when joining the army and completing the program after 3 attempts'"
+#         )
+#         impact_today: str = Field(
+#             ..., 
+#             description="How the value impacts how the creator works today, e.g., 'When cold calling people, understands the power of numbers and having to go through a lot of setbacks to get a successful call'"
+#         )
+#     ```
+#     query guidelines:
+#     For values:
+#     - "What core values does the author demonstrate?"
+#     - "How does their background influence their values?"
+#     - "How do their values impact their work?"
+
+#     Rules for queries:
+#     - Use plain text queries only
+#     - One query at a time
+#     - Keep focused and specific
+
+#     IMPORTANT: Pass following list of queries to "Query Vector DB" tool to populate the `ContentCreatorInfo` model:
+#     query:"What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?" to populate "ValueObject" information.
+#     If any information is missing, leave the value as None.
+#     All information must come directly from the searches. 
+#     Do not make up any information.
+#     Rephrase and re-query to the vector database as necessary to obtain all needed information.
+#     Each Field in the `ValueObject` model should be 4-5 sentences long. They should be supported by real quotes from the video.
+#     The output should be a list of ValueObject objects. NOTHING ELSE. to populate the `values` field in the `ContentCreatorInfo` model.
+#     ```
+#     class ContentCreatorInfo(BaseModel):
+#                   life_events: List[LifeEventObject] = Field(
+#                       ..., 
+#                       description="List of significant life events that shaped the creator's journey"
+#                   )
+#                   business: BusinessObject = Field(
+#                       ..., 
+#                       description="Information about the creator's business or primary professional venture"
+#                   )
+#                   values: List[ValueObject] = Field(
+#                       ..., 
+#                       description="List of the creator's core values that guide their work and life"
+#                   )
+#                   challenges: List[ChallengeObject] = Field(
+#                       ..., 
+#                       description="List of significant challenges faced by the creator and how they overcame them"
+#                   )
+#                   achievements: List[AchievementObject] = Field(
+#                       ..., 
+#                       description="List of the creator's notable achievements and milestones"
+#                   )
+#                   first_name: Optional[str] = Field(
+#                       None, 
+#                       description="The first name of the content creator"
+#                   )
+#                   last_name: Optional[str] = Field(
+#                       None, 
+#                       description="The last name of the content creator"
+#                   )
+#     ```
+
+#   expected_output: >
+#     The list of ValueObject objects populated in the `values` field in the `ContentCreatorInfo` model.
+#   agent: general_research_agent
+
+# find_challenges_task:
+#   description: >
+#     Find the challenges of the content creator using the "Query Vector DB" tool.
+#     Here is a query example: "What are the challenges that the author faced and how did he overcome them?"
+#     You need to gather several challenge objects. Here is an example of the `ChallengeObject` model:
+#     ```
+#     class ChallengeObject(BaseModel):
+#         description: str = Field(
+#             ..., 
+#             description="Description of the challenge, e.g., 'Experiencing homelessness in 2009'"
+#         )
+#         learnings: str = Field(
+#             ..., 
+#             description="The lessons the creator learned from the challenge, e.g., 'Made survival and ruthless prioritization his first priority'"
+#         )
+#     ```
+#     query guideliness
+#     IMPORTANT: Pass following list of queries to "Query Vector DB" tool to populate the `ContentCreatorInfo` model:
+#     query:"What obstacles has the author overcome?" to populate "ChallengeObject" information.
+#     query:"What lessons came from their setbacks?" to populate "ChallengeObject" information.
+#     query:"How has their journey shaped their approach?" to populate "ChallengeObject" information.
+
+#     Rules for queries:
+#     - Use plain text queries only
+#     - One query at a time
+#     - Keep focused and specific
+
+#     query:"What are the challenges that the author faced and how did he overcome them?" to populate "ChallengeObject" information.
+#     If any information is missing, leave the value as None.
+#     All information must come directly from the searches. 
+#     Do not make up any information.
+#     Rephrase and re-query to the vector database as necessary to obtain all needed information.
+#     Each Field in the `ChallengeObject` model should be 4-5 sentences long. They should be supported by real quotes from the video.
+#     IMPORTANT: The output should be a ChallengeObject object. NOTHING ELSE.
+#     The output should be a list of AchievementObject objects. NOTHING ELSE. to populate the `achievements` field in the `ContentCreatorInfo` model.
+#     ```
+#     class ContentCreatorInfo(BaseModel):
+#                   life_events: List[LifeEventObject] = Field(
+#                       ..., 
+#                       description="List of significant life events that shaped the creator's journey"
+#                   )
+#                   business: BusinessObject = Field(
+#                       ..., 
+#                       description="Information about the creator's business or primary professional venture"
+#                   )
+#                   values: List[ValueObject] = Field(
+#                       ..., 
+#                       description="List of the creator's core values that guide their work and life"
+#                   )
+#                   challenges: List[ChallengeObject] = Field(
+#                       ..., 
+#                       description="List of significant challenges faced by the creator and how they overcame them"
+#                   )
+#                   achievements: List[AchievementObject] = Field(
+#                       ..., 
+#                       description="List of the creator's notable achievements and milestones"
+#                   )
+#                   first_name: Optional[str] = Field(
+#                       None, 
+#                       description="The first name of the content creator"
+#                   )
+#                   last_name: Optional[str] = Field(
+#                       None, 
+#                       description="The last name of the content creator"
+#                   )
+#     ```
+
+#   expected_output: >
+#     The list of ChallengeObject objects populated in the `challenges` field in the `ContentCreatorInfo` model.
+#   agent: general_research_agent
+
+# find_achievements_task:
+#   description: >
+#     Find the achievements of the content creator using the "Query Vector DB" tool.
+#     Here is a query example: "What are the key achievements that the author achieved that gives him more credibility and successful?"
+#     You need to gather several achievement objects. Here is an example of the `AchievementObject` model:
+#     ```
+#     class AchievementObject(BaseModel):
+#         description: str = Field(
+#             ..., 
+#             description="Description of the achievement, e.g., 'Founding own creative agency \"On Air\"', 'Speaking at TEDx Conferences'"
+#         )
+
+#         @classmethod
+#         def default(cls) -> 'AchievementObject':
+#             return cls(
+#                 description=""
+#             )
+#     ```
+#     query guidelines:
+#     IMPORTANT: Pass following list of queries to "Query Vector DB" tool to populate the `ContentCreatorInfo` model:
+#     query:"What are their significant achievements?" to populate "AchievementObject" information.
+#     query:"What milestones show their success?" to populate "AchievementObject" information.
+#     query:"What metrics demonstrate their growth?" to populate "AchievementObject" information.
+
+#     Rules for queries:
+#     - Use plain text queries only
+#     - One query at a time
+#     - Keep focused and specific
+
+#     IMPORTANT: Pass following list of queries to "Query Vector DB" tool to populate the `ContentCreatorInfo` model:
+#     query:"What are the key achievements that the author achieved that gives him more credibility and successful?" to populate "AchievementObject" information.
+#     If any information is missing, leave the value as None.
+#     All information must come directly from the searches. 
+#     Do not make up any information.
+#     Rephrase and re-query to the vector database as necessary to obtain all needed information.
+#     Each Field in the `AchievementObject` model should be 4-5 sentences long. They should be supported by real quotes from the video.
+#     The output should be a list of AchievementObject objects. NOTHING ELSE. to populate the `achievements` field in the `ContentCreatorInfo` model.
+#     ```
+#     class ContentCreatorInfo(BaseModel):
+#                   life_events: List[LifeEventObject] = Field(
+#                       ..., 
+#                       description="List of significant life events that shaped the creator's journey"
+#                   )
+#                   business: BusinessObject = Field(
+#                       ..., 
+#                       description="Information about the creator's business or primary professional venture"
+#                   )
+#                   values: List[ValueObject] = Field(
+#                       ..., 
+#                       description="List of the creator's core values that guide their work and life"
+#                   )
+#                   challenges: List[ChallengeObject] = Field(
+#                       ..., 
+#                       description="List of significant challenges faced by the creator and how they overcame them"
+#                   )
+#                   achievements: List[AchievementObject] = Field(
+#                       ..., 
+#                       description="List of the creator's notable achievements and milestones"
+#                   )
+#                   first_name: Optional[str] = Field(
+#                       None, 
+#                       description="The first name of the content creator"
+#                   )
+#                   last_name: Optional[str] = Field(
+#                       None, 
+#                       description="The last name of the content creator"
+#                   )
+#     ```
+
+#   expected_output: >
+#     The list of AchievementObject objects populated in the `achievements` field in the `ContentCreatorInfo` model.
+#   agent: general_research_agent
+
+# find_initial_information_task:
+#   description: >
+#     query the vector database to populate the `ContentCreatorInfo` model with 
+#     as much information as possible, using the "Query Vector DB" tool.
+
+#     IMPORTANT: Move to the next task if {youtube_channel_handle} is NOT found. DO NOT try to guess or figure out the name of an account.      
+#     Here is a query example: "What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?"
+#     IMPORTANT: if {youtube_channel_handle} not found, DO NOT use tool, and move on to the next task.
+
+#     You need to gather enough information about the content creator to be able to write 3000 words about them.
+
+#        You need to gather enough information about the content creator to be able to write 3000 words about them.
+#           Here is the `ContentCreatorInfo` model:
+#           ```
+#               class ValueObject(BaseModel):
+#                   name: str = Field(
+#                       ..., 
+#                       description="The name of the value, e.g., 'perseverance'"
+#                   )
+#                   origin: str = Field(
+#                       ..., 
+#                       description="The origin or development of the value, e.g., 'Developed this trait when joining the army and completing the program after 3 attempts'"
+#                   )
+#                   impact_today: str = Field(
+#                       ..., 
+#                       description="How the value impacts how the creator works today, e.g., 'When cold calling people, understands the power of numbers and having to go through a lot of setbacks to get a successful call'"
+#                   )
+
+#                   # Add default constructor for error handling
+#                   @classmethod
+#                   def default(cls) -> 'ValueObject':
+#                       return cls(
+#                           name="",
+#                           origin="",
+#                           impact_today=""
+#                       )
+
+#               class ChallengeObject(BaseModel):
+#                   description: str = Field(
+#                       ..., 
+#                       description="Description of the challenge, e.g., 'Experiencing homelessness in 2009'"
+#                   )
+#                   learnings: str = Field(
+#                       ..., 
+#                       description="The lessons the creator learned from the challenge, e.g., 'Made survival and ruthless prioritization his first priority'"
+#                   )
+
+#                   @classmethod
+#                   def default(cls) -> 'ChallengeObject':
+#                       return cls(
+#                           description="",
+#                           learnings=""
+#                       )
+
+#               class AchievementObject(BaseModel):
+#                   description: str = Field(
+#                       ..., 
+#                       description="Description of the achievement, e.g., 'Founding own creative agency \"On Air\"', 'Speaking at TEDx Conferences'"
+#                   )
+
+#                   @classmethod
+#                   def default(cls) -> 'AchievementObject':
+#                       return cls(
+#                           description=""
+#                       )
+
+#               class LifeEventObject(BaseModel):
+#                   name: str = Field(
+#                       ..., 
+#                       description="Name or title of the life event, e.g., 'Childhood'"
+#                   )
+#                   description: str = Field(
+#                       ..., 
+#                       description="Description of the life event, e.g., 'Grew up on a quiet island called La Désirade, in Guadeloupe'"
+#                   )
+
+#                   @classmethod
+#                   def default(cls) -> 'LifeEventObject':
+#                       return cls(
+#                           name="",
+#                           description=""
+#                       )
+
+#               class BusinessObject(BaseModel):
+#                   name: str = Field(
+#                       ..., 
+#                       description="Name of the business, e.g., 'Agency \"On Air\"'"
+#                   )
+#                   description: str = Field(
+#                       ..., 
+#                       description="Description of the business, e.g., 'Marketing strategist to drive innovation in large corporates'"
+#                   )
+#                   genesis: str = Field(
+#                       ..., 
+#                       description="How the business started, e.g., 'Started as a freelancer, building out the skills to turn them into an agency in 2010'"
+#                   )
+
+#                   @classmethod
+#                   def default(cls) -> 'BusinessObject':
+#                       return cls(
+#                           name="",
+#                           description="",
+#                           genesis=""
+#                       )
+
+#               class ContentCreatorInfo(BaseModel):
+#                   life_events: List[LifeEventObject] = Field(
+#                       ..., 
+#                       description="List of significant life events that shaped the creator's journey"
+#                   )
+#                   business: BusinessObject = Field(
+#                       ..., 
+#                       description="Information about the creator's business or primary professional venture"
+#                   )
+#                   values: List[ValueObject] = Field(
+#                       ..., 
+#                       description="List of the creator's core values that guide their work and life"
+#                   )
+#                   challenges: List[ChallengeObject] = Field(
+#                       ..., 
+#                       description="List of significant challenges faced by the creator and how they overcame them"
+#                   )
+#                   achievements: List[AchievementObject] = Field(
+#                       ..., 
+#                       description="List of the creator's notable achievements and milestones"
+#                   )
+#                   first_name: Optional[str] = Field(
+#                       None, 
+#                       description="The first name of the content creator"
+#                   )
+#                   last_name: Optional[str] = Field(
+#                       None, 
+#                       description="The last name of the content creator"
+#                   )
+
+#                   @classmethod
+#                   def default(cls) -> 'ContentCreatorInfo':
+#                       return cls(
+#                           first_name="",
+#                           last_name="",
+#                           life_events=[LifeEventObject.default()],
+#                           business=BusinessObject.default(),
+#                           values=[ValueObject.default()],
+#                           challenges=[ChallengeObject.default()],
+#                           achievements=[AchievementObject.default()]
+#                       )
+#           ```
+#         query guidelines:
+#         IMPORTANT: Pass following list of queries to "Query Vector DB" tool to populate the `ContentCreatorInfo` model:
+#         query:"What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?" to populate "ValueObject" information.
+#         query:"What are the setbacks, failures that the author encountered and learnt from?" to populate "ChallengeObject" information.
+#         query:"What are the key achievements that the author achieved that gives him more credibility and successful?" to populate "AchievementObject" information.
+#         query:"What are the life events/circumstances that shaped the character of the author throughout his life?" to populate "LifeEventObject" information.
+#         query:"What was the context/environment that triggered the author to decide to change his life around and launch this business?" to populate "BusinessObject" information.
+#         query: What is the first name, last name of author of the video? If looking for contact details.
+#         query: "What are the tips mentioned in the video that I can implement to grow my business?" to populate "BusinessObject" information.
+#         query: "What are the key characteristics of the business of the author and the services I can buy from him?" to populate "BusinessObject" information.
+#         query: "What is the first and last name of the author" to populate "first_name" and "last_name" fields in the `ContentCreatorInfo` model.
+#         Warnings:
+#         IMPORTANT: ONLY RETURN THE INFO IF IT RELATES TO THE CONTENT CREATOR. YOU SHOULD NOT POPULATE THE INFO IF IT RELATES TO A GUEST IN THE VIDEO.
+#         If any information is missing, leave the value as None.
+#         All information must come directly from the searches. 
+#         Do not make up any information.
+#         Rephrase and re-query to the vector database as necessary to obtain all needed information.
+#         Each Field in the `ContentCreatorInfo` model should be 4-5 sentences long. They should be supported by real quotes from the video.
+#         IMPORTANT: The output should be a ContentCreatorInfo object. NOTHING ELSE.
+
+#     Rules for output:
+#     - Only return info found using tool
+#     - No made-up information
+#     - Each field should be 4-5 sentences
+#     - Keep stories and anecdotes to keep it personable and engaging
+
+#   expected_output: >
+#     Fill out the `ContentCreatorInfo` model with as much information as possible. 
+#     Ensure all information is accurate and comes from the searches. 
+#     If any information is not found, leave it as None.  
+#   agent: general_research_agent
+
+# follow_up_task:
+#   description: >
+#     You will pass queries to the tool "Query Vector DB" to populate the `ContentCreatorInfo` model. 
+    
+#     IMPORTANT: Move to the next task if {youtube_channel_handle} is NOT found. DO NOT try to guess or figure out the name of an account.
+#     Here is an example of the queries you should pass: "What are the values/lessons that the author transmits throughout the video that makes him likeable, trustworthy?"
+
+#        You need to gather enough information about the content creator to be able to write 3000 words about them.
+#         Here is the `ContentCreatorInfo` model:
+#         ```
+#             class ValueObject(BaseModel):
+#                 name: str = Field(
+#                     ..., 
+#                     description="The name of the value, e.g., 'perseverance'"
+#                 )
+#                 origin: str = Field(
+#                     ..., 
+#                     description="The origin or development of the value, e.g., 'Developed this trait when joining the army and completing the program after 3 attempts'"
+#                 )
+#                 impact_today: str = Field(
+#                     ..., 
+#                     description="How the value impacts how the creator works today, e.g., 'When cold calling people, understands the power of numbers and having to go through a lot of setbacks to get a successful call'"
+#                 )
+
+#                 # Add default constructor for error handling
+#                 @classmethod
+#                 def default(cls) -> 'ValueObject':
+#                     return cls(
+#                         name="",
+#                         origin="",
+#                         impact_today=""
+#                     )
+
+#             class ChallengeObject(BaseModel):
+#                 description: str = Field(
+#                     ..., 
+#                     description="Description of the challenge, e.g., 'Experiencing homelessness in 2009'"
+#                 )
+#                 learnings: str = Field(
+#                     ..., 
+#                     description="The lessons the creator learned from the challenge, e.g., 'Made survival and ruthless prioritization his first priority'"
+#                 )
+
+#                 @classmethod
+#                 def default(cls) -> 'ChallengeObject':
+#                     return cls(
+#                         description="",
+#                         learnings=""
+#                     )
+
+#             class AchievementObject(BaseModel):
+#                 description: str = Field(
+#                     ..., 
+#                     description="Description of the achievement, e.g., 'Founding own creative agency \"On Air\"', 'Speaking at TEDx Conferences'"
+#                 )
+
+#                 @classmethod
+#                 def default(cls) -> 'AchievementObject':
+#                     return cls(
+#                         description=""
+#                     )
+
+#             class LifeEventObject(BaseModel):
+#                 name: str = Field(
+#                     ..., 
+#                     description="Name or title of the life event, e.g., 'Childhood'"
+#                 )
+#                 description: str = Field(
+#                     ..., 
+#                     description="Description of the life event, e.g., 'Grew up on a quiet island called La Désirade, in Guadeloupe'"
+#                 )
+
+#                 @classmethod
+#                 def default(cls) -> 'LifeEventObject':
+#                     return cls(
+#                         name="",
+#                         description=""
+#                     )
+
+#             class BusinessObject(BaseModel):
+#                 name: str = Field(
+#                     ..., 
+#                     description="Name of the business, e.g., 'Agency \"On Air\"'"
+#                 )
+#                 description: str = Field(
+#                     ..., 
+#                     description="Description of the business, e.g., 'Marketing strategist to drive innovation in large corporates'"
+#                 )
+#                 genesis: str = Field(
+#                     ..., 
+#                     description="How the business started, e.g., 'Started as a freelancer, building out the skills to turn them into an agency in 2010'"
+#                 )
+
+#                 @classmethod
+#                 def default(cls) -> 'BusinessObject':
+#                     return cls(
+#                         name="",
+#                         description="",
+#                         genesis=""
+#                     )
+
+#             class ContentCreatorInfo(BaseModel):
+#                 life_events: List[LifeEventObject] = Field(
+#                     ..., 
+#                     description="List of significant life events that shaped the creator's journey"
+#                 )
+#                 business: BusinessObject = Field(
+#                     ..., 
+#                     description="Information about the creator's business or primary professional venture"
+#                 )
+#                 values: List[ValueObject] = Field(
+#                     ..., 
+#                     description="List of the creator's core values that guide their work and life"
+#                 )
+#                 challenges: List[ChallengeObject] = Field(
+#                     ..., 
+#                     description="List of significant challenges faced by the creator and how they overcame them"
+#                 )
+#                 achievements: List[AchievementObject] = Field(
+#                     ..., 
+#                     description="List of the creator's notable achievements and milestones"
+#                 )
+#                 first_name: Optional[str] = Field(
+#                     None, 
+#                     description="The first name of the content creator"
+#                 )
+#                 last_name: Optional[str] = Field(
+#                     None, 
+#                     description="The last name of the content creator"
+#                 )
+
+#                 @classmethod
+#                 def default(cls) -> 'ContentCreatorInfo':
+#                     return cls(
+#                         first_name="",
+#                         last_name="",
+#                         life_events=[LifeEventObject.default()],
+#                         business=BusinessObject.default(),
+#                         values=[ValueObject.default()],
+#                         challenges=[ChallengeObject.default()],
+#                         achievements=[AchievementObject.default()]
+#                     )
+#         ```
+
+#     Use these exact queries:
+#     For values:
+#     - "What core values does the author demonstrate?"
+#     - "How does their background influence their values?"
+#     - "How do their values impact their work?"
+    
+#     For challenges:
+#     - "What obstacles has the author overcome?"
+#     - "What lessons came from their setbacks?"
+#     - "How has their journey shaped their approach?"
+    
+#     For achievements:
+#     - "What are their significant achievements?"
+#     - "What milestones show their success?"
+#     - "What metrics demonstrate their growth?"
+    
+#     For life events:
+#     - "What moments were pivotal?"
+#     - "How did their past shape them?"
+#     - "What experiences influenced their business?"
+    
+#     For business:
+#     - "What makes their business unique?"
+#     - "How do they serve clients?"
+
+#     For first name and last name:
+#     - "What is the first name of the author?"
+#     - "What is the last name of the author?"
+
+#     Rules for queries:
+#     - Use plain text queries only
+#     - One query at a time
+#     - Keep focused and specific
+
+#     Rules for output:
+#     - Only return info found using tool
+#     - No made-up information
+#     - Each field should be 4-5 sentences
+#     - Keep stories and anecdotes to keep it personable and engaging
+#   # inputs:
+#   expected_output: >
+#     Fill out the `ContentCreatorInfo` model with as much information as possible. 
+#     Ensure all information is accurate and comes from the searches. 
+#     If any information is not found, leave it as None. OR "YouTube channel not found"
+#   agent: follow_up_agent

@@ -1,5 +1,5 @@
 from crewai_tools.tools.base_tool import BaseTool
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import Any, Type
 from embedchain import App
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -22,12 +22,12 @@ class AddVideoToVectorDBTool(BaseTool):
     description: str = "Adds a YouTube video transcript to the vector database."
     args_schema: Type[AddVideoToVectorDBInput] = AddVideoToVectorDBInput
     app: Any = Field(default=None, exclude=True)
-    _is_initialized: bool = Field(default=False, exclude=True)
+    is_initialized: bool = Field(default=False, exclude=True)
 
     def __init__(self, app: App, **data):
         super().__init__(**data)
         self.app = app
-        self._is_initialized = False
+        self.is_initialized = False
 
     def initialize_for_new_creator(self):
         """Reset the vector database before starting analysis for a new creator."""
@@ -37,7 +37,7 @@ class AddVideoToVectorDBTool(BaseTool):
             logger.info("Vector database reset successfully")
         else:
             logger.error("No app instance available for reset")
-        self._is_initialized = True
+        self.is_initialized = True
 
     def _extract_video_id(self, url: str) -> str:
         """Extract the video ID from a YouTube URL."""
@@ -79,7 +79,7 @@ class AddVideoToVectorDBTool(BaseTool):
             raise Exception("Could not find transcript in the video page")
 
     def _run(self, video_url: str) -> AddVideoToVectorDBOutput:
-        if not self._is_initialized:
+        if not self.is_initialized:
             self.initialize_for_new_creator()
             
         try:

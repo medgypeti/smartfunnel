@@ -1,5 +1,7 @@
 from typing import Type, Optional
-from pydantic.v1 import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
+
+# from pydantic.v1 import BaseModel, Field, PrivateAttr
 from crewai_tools.tools.base_tool import BaseTool
 from embedchain import App
 import logging

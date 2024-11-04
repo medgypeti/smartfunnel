@@ -1,0 +1,77 @@
+prompting_rag_task:
+  description: >
+    Use the "Prompting RAG Tool" and pass the {input_string} which is a ContentCreatorInfo object info to transform the creator information
+    from the pydantic model ContentCreatorInfo into persona-based narratives.
+    The narrative should include all objects across the relevant sections: life_events, achievements, challenges,
+    values, business, tone_of_voice, constraints, and emojis sections. UNLESS the creator does not have an equivalent. 
+    IMPORTANT: DO NOT MAKE UP INFORMATION.
+    Structure guidelines:
+    The [life_events] is a list of LifeEventObject which covers the creator's life events. Use it to personalize the [persona].
+    The [achievements] is a list of AchievementObject which covers the creator's achievements. Use it to personalize the [persona].
+    The [business] is an object of BusinessObject which covers the creator's business. Use it to personalize the [persona] section of the template.
+    The [challenges] is a list of ChallengeObject which covers the creator's challenges. Use it to personalize the text.
+    The [values] is a list of ValueObject which covers the creator's values. Use it to personalize the text.
+    IMPORTANT: The list of [values] should include:
+    - [value_1] is the value [name] (e.g., "value of money ")
+    - [context] is how it should be used within interactions between the creators and his/her audience (e.g., "Use this value when the conversation involves the generation of profit and money")
+    - [description] is the story behind the value (e.g., "At 13 years old, your parents divorced after your father lost his job. The house was sold, and you ended up with your mother in a small suburban studio. This period triggered in you an awareness of the value of money, which you apply today in your interactions.")
+    - [usage] is how the value is used in the creator's daily work and life (e.g., " In your conversations, you demonstrate an awareness of the value of money, you are clear-headed, and you do not have delusions of grandeur.")
+    The [ton_of_voice] section depicts how the creator should interact, in different scenarios with his/her audience (e.g. You write short messages, similar to a DM you'd send on social media. Use a professional but accessible tone that emphasizes efficiency. You use emojis to convey emotion with the client (not in every message and maximum 1 emoji per message))
+    IMPORTANT: The [ton_of_voice] section is a list of strings, each string is a different scenario of how the creator should interact with his/her audience. It should be inferred from the creator's information. See templates for examples.
+    The [constraints] section depicts the constraints the creator has in his/her interactions with his/her audience, and the formatting he/she can use (e.g. You are a freelancer and you can only work with clients from Europe. You can only work with clients from Europe. Share links without any formatting.)
+    IMPORTANT: The [constraints] section is a list of strings, each string is a different constraint the creator has. See templates for examples. They're quite generic, but infer some additional constraints if you think there is a need for it.
+    The [emojis] section depicts the emojis the creator can use in his/her interactions with his/her audience (e.g. You can use emojis to convey emotion with the client (not in every message and maximum 1 emoji per message))
+    IMPORTANT: The [emojis] section is a list of strings, each string is a different emoji the creator can use. It should be inferred from the creator's information. See templates for examples.
+
+    Text guidelines:
+    Create a new text that follows the same structure and style as the templates but uses the creator's information.
+    IMPORTANT: Maintain a second-person narrative perspective. Meaning you should use "you" when writing the text.
+    Derive the tone and style based on the creator's information
+    Incorporate key details about the creator's journey, values, and achievements
+    Create a cohesive narrative that flows naturally
+    Keep similar length and structure as the templates. There are 2 different templates for reference.
+    If the ContentCreatorInfo does not contain the info for a section, do not mention it.
+    Do NOT make up information.
+    Do NOT use info from the templates that is not in the ContentCreatorInfo.
+    SUPER IMPORTANT: DO NOT FORGET TO INCLUDE ALL OF THE OBJECTS ACROSS THE RELEVANT SECTIONS OF THE TEXT. ALL SECTIONS SHOULD BE INCLUDED AND PERSONALISED.
+  expected_output: "The output narrative about the creator, using the creator's information and following the template structure."
+  agent: prompting_rag_agent
+
+# prompting_rag_task:
+#   description: >
+#     Use the "Prompting RAG Tool" and the ContentCreatorInfo object info to transform the creator information
+#     from the pydantic model ContentCreatorInfo into persona-based narratives.
+#     The narrative should include all objects across the relevant sections: life_events, achievements, challenges,
+#     values, business, tone_of_voice, constraints, and emojis sections. UNLESS the creator does not have an equivalent. 
+#     IMPORTANT: DO NOT MAKE UP INFORMATION.
+#     Structure guidelines:
+#     The [life_events] is a list of LifeEventObject which covers the creator's life events. Use it to personalize the [persona].
+#     The [achievements] is a list of AchievementObject which covers the creator's achievements. Use it to personalize the [persona].
+#     The [business] is an object of BusinessObject which covers the creator's business. Use it to personalize the [persona] section of the template.
+#     The [challenges] is a list of ChallengeObject which covers the creator's challenges. Use it to personalize the text.
+#     The [values] is a list of ValueObject which covers the creator's values. Use it to personalize the text.
+#     IMPORTANT: The list of [values] should include:
+#     - [value_1] is the value [name] (e.g., "value of money ")
+#     - [context] is how it should be used within interactions between the creators and his/her audience (e.g., "Use this value when the conversation involves the generation of profit and money")
+#     - [description] is the story behind the value (e.g., "At 13 years old, your parents divorced after your father lost his job. The house was sold, and you ended up with your mother in a small suburban studio. This period triggered in you an awareness of the value of money, which you apply today in your interactions.")
+#     - [usage] is how the value is used in the creator's daily work and life (e.g., " In your conversations, you demonstrate an awareness of the value of money, you are clear-headed, and you do not have delusions of grandeur.")
+#     The [ton_of_voice] section depicts how the creator should interact, in different scenarios with his/her audience (e.g. You write short messages, similar to a DM you'd send on social media. Use a professional but accessible tone that emphasizes efficiency. You use emojis to convey emotion with the client (not in every message and maximum 1 emoji per message))
+#     IMPORTANT: The [ton_of_voice] section is a list of strings, each string is a different scenario of how the creator should interact with his/her audience. It should be inferred from the creator's information. See templates for examples.
+#     The [constraints] section depicts the constraints the creator has in his/her interactions with his/her audience, and the formatting he/she can use (e.g. You are a freelancer and you can only work with clients from Europe. You can only work with clients from Europe. Share links without any formatting.)
+#     IMPORTANT: The [constraints] section is a list of strings, each string is a different constraint the creator has. See templates for examples. They're quite generic, but infer some additional constraints if you think there is a need for it.
+#     The [emojis] section depicts the emojis the creator can use in his/her interactions with his/her audience (e.g. You can use emojis to convey emotion with the client (not in every message and maximum 1 emoji per message))
+#     IMPORTANT: The [emojis] section is a list of strings, each string is a different emoji the creator can use. It should be inferred from the creator's information. See templates for examples.
+
+#     Text guidelines:
+#     Create a new text that follows the same structure and style as the templates but uses the creator's information.
+#     IMPORTANT: Maintain a second-person narrative perspective. Meaning you should use "you" when writing the text.
+#     Derive the tone and style based on the creator's information
+#     Incorporate key details about the creator's journey, values, and achievements
+#     Create a cohesive narrative that flows naturally
+#     Keep similar length and structure as the templates. There are 2 different templates for reference.
+#     If the ContentCreatorInfo does not contain the info for a section, do not mention it.
+#     Do NOT make up information.
+#     Do NOT use info from the templates that is not in the ContentCreatorInfo.
+#     SUPER IMPORTANT: DO NOT FORGET TO INCLUDE ALL OF THE OBJECTS ACROSS THE RELEVANT SECTIONS OF THE TEXT. ALL SECTIONS SHOULD BE INCLUDED AND PERSONALISED.
+#   expected_output: "The output narrative about the creator, using the creator's information and following the template structure."
+#   agent: prompting_rag_agent
