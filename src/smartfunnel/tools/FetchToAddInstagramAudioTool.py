@@ -472,7 +472,7 @@ class FetchToAddInstagramAudioTool(BaseTool):
 
         # Sort posts by relevance score and return top ones
         ranked_posts = sorted(all_posts, key=lambda x: x.relevance_score, reverse=True)
-        return ranked_posts[:5]  # Return top 40 most relevant posts
+        return ranked_posts[:40]  # Return top 40 most relevant posts
 
     def _run(self, instagram_username: str) -> str:
         if not self.is_initialized:

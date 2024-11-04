@@ -89,7 +89,7 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
             # Sort by popularity (view count) and take top 50
             popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:50]
             ranked_videos = self.rank_videos(popular_videos)
-            top_videos = ranked_videos[:2]
+            top_videos = ranked_videos[:10]
 
             # Create a summary string
             summary = f"Successfully analyzed {len(videos)} videos from {youtube_channel_handle}.\n"
@@ -195,7 +195,7 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
         all_video_ids = []
         page_token = None
         try:
-            while len(all_video_ids) < 20:
+            while len(all_video_ids) < 200:
                 if page_token:
                     params["pageToken"] = page_token
 
@@ -212,7 +212,7 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
 
                 time.sleep(1)
 
-            return all_video_ids[:20]
+            return all_video_ids[:200]
         except requests.exceptions.RequestException as e:
             print(f"Error in fetch_all_videos: {e}")
             print(f"Response content: {response.content}")

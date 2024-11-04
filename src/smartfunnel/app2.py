@@ -193,6 +193,66 @@ from typing import List, Optional, Dict, Any, Union
 from smartfunnel.crew_youtube import YoutubeCrew
 from smartfunnel.crew_instagram import InstagramCrew
 
+
+#  new version --------
+
+def validate_password(password: str) -> bool:
+    """Validate password against stored secret"""
+    try:
+        return password == st.secrets["Answer"]
+    except Exception as e:
+        logger.error(f"Error accessing secrets: {e}")
+        st.error("Error accessing secrets. Make sure secrets.toml is properly configured.")
+        return False
+
+def convert_to_markdown(data: Dict) -> str:
+    """Convert the analysis results to markdown format"""
+    md = "# Creator Analysis Report\n\n"
+    
+    # Basic Info
+    md += "## Basic Information\n"
+    md += f"- First Name: {data.get('first_name', 'Unknown')}\n"
+    md += f"- Last Name: {data.get('last_name', 'Unknown')}\n\n"
+    
+    # Business
+    if data.get('business'):
+        md += "## Business\n"
+        md += f"### {data['business'].get('name', 'Unknown Business')}\n"
+        md += f"{data['business'].get('description', '')}\n"
+        md += f"**Genesis:** {data['business'].get('genesis', '')}\n\n"
+    
+    # Values
+    if data.get('values'):
+        md += "## Core Values\n"
+        for value in data['values']:
+            md += f"### {value.get('name', '')}\n"
+            md += f"**Origin:** {value.get('origin', '')}\n"
+            md += f"**Impact Today:** {value.get('impact_today', '')}\n\n"
+    
+    # Life Events
+    if data.get('life_events'):
+        md += "## Significant Life Events\n"
+        for event in data['life_events']:
+            md += f"### {event.get('name', '')}\n"
+            md += f"{event.get('description', '')}\n\n"
+    
+    # Challenges
+    if data.get('challenges'):
+        md += "## Challenges and Learnings\n"
+        for challenge in data['challenges']:
+            md += f"### Challenge\n{challenge.get('description', '')}\n"
+            md += f"**Learnings:** {challenge.get('learnings', '')}\n\n"
+    
+    # Achievements
+    if data.get('achievements'):
+        md += "## Achievements\n"
+        for achievement in data['achievements']:
+            md += f"- {achievement.get('description', '')}\n"
+    
+    return md
+
+#  new version --------
+
 def merge_content_creator_info(info1: Dict[str, Any], info2: Dict[str, Any]) -> Dict[str, Any]:
     """
     Merges two ContentCreatorInfo dictionaries, combining lists and selecting the longest values
@@ -321,14 +381,19 @@ def merge_and_validate_content(crew_result: Dict[str, Any], instagram_info: Dict
         print(f"Error during merge: {str(e)}")
         return ContentCreatorInfo.create_empty()
 
+
 def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str]) -> Dict[str, Any]:
     """
-    Identical to original run() function but with Streamlit inputs.
+    Run analysis with improved progress feedback.
     """
     try:
         # Make sure at least one handle is provided
         if not youtube_handle and not instagram_handle:
             raise ValueError("At least one handle (YouTube or Instagram) is required")
+        
+        # Create a progress container
+        progress_container = st.empty()
+        status_container = st.empty()
         
         # Initialize variables
         youtube_json = {}
@@ -336,63 +401,99 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str])
         
         # Try YouTube analysis if handle provided
         if youtube_handle:
-            st.write("\n=== YouTube Analysis ===")
-            try:
-                youtube_result = YoutubeCrew().crew().kickoff(inputs={"youtube_channel_handle": youtube_handle})
-                if hasattr(youtube_result, 'pydantic'):
-                    youtube_json = youtube_result.pydantic.dict()
-                    st.write("YouTube Data Preview:")
-                    st.write(f"- First Name: {youtube_json.get('first_name', 'Not found')}")
-                    st.write(f"- Number of values: {len(youtube_json.get('values', []))}")
-            except Exception as e:
-                st.write(f"Warning: Error analyzing YouTube content: {str(e)}")
-                youtube_json = {}  # Reset to empty dict if failed
+            with status_container.container():
+                st.subheader("YouTube Analysis")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                status_text.text("Initializing YouTube analysis...")
+                progress_bar.progress(25)
+                
+                try:
+                    youtube_result = YoutubeCrew().crew().kickoff(inputs={"youtube_channel_handle": youtube_handle})
+                    progress_bar.progress(50)
+                    status_text.text("Processing YouTube data...")
+                    
+                    if hasattr(youtube_result, 'pydantic'):
+                        youtube_json = youtube_result.pydantic.dict()
+                        progress_bar.progress(100)
+                        status_text.text("YouTube analysis complete!")
+                        st.write(f"✓ Found data for: {youtube_json.get('first_name', 'Unknown')} {youtube_json.get('last_name', 'Unknown')}")
+                        st.write(f"✓ Collected {len(youtube_json.get('values', []))} values")
+                except Exception as e:
+                    progress_bar.progress(100)
+                    status_text.text(f"⚠️ YouTube analysis encountered an error: {str(e)}")
+                    youtube_json = {}
         
         # Try Instagram analysis if handle provided
         if instagram_handle:
-            st.write("\n=== Instagram Analysis ===")
-            try:
-                instagram_result = InstagramCrew().crew().kickoff(inputs={"instagram_username": instagram_handle})
-                if hasattr(instagram_result, 'pydantic'):
-                    instagram_json = instagram_result.pydantic.dict()
-                    st.write("Instagram Data Preview:")
-                    st.write(f"- First Name: {instagram_json.get('first_name', 'Not found')}")
-                    st.write(f"- Number of values: {len(instagram_json.get('values', []))}")
-            except Exception as e:
-                st.write(f"Warning: Error analyzing Instagram content: {str(e)}")
-                instagram_json = {}  # Reset to empty dict if failed
+            with status_container.container():
+                st.subheader("Instagram Analysis")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                status_text.text("Initializing Instagram analysis...")
+                progress_bar.progress(25)
+                
+                try:
+                    instagram_result = InstagramCrew().crew().kickoff(inputs={"instagram_username": instagram_handle})
+                    progress_bar.progress(50)
+                    status_text.text("Processing Instagram data...")
+                    
+                    if hasattr(instagram_result, 'pydantic'):
+                        instagram_json = instagram_result.pydantic.dict()
+                        progress_bar.progress(100)
+                        status_text.text("Instagram analysis complete!")
+                        st.write(f"✓ Found data for: {instagram_json.get('first_name', 'Unknown')} {instagram_json.get('last_name', 'Unknown')}")
+                        st.write(f"✓ Collected {len(instagram_json.get('values', []))} values")
+                except Exception as e:
+                    progress_bar.progress(100)
+                    status_text.text(f"⚠️ Instagram analysis encountered an error: {str(e)}")
+                    instagram_json = {}
         
-        # Status update
-        st.write("\n=== Analysis Status ===")
-        st.write(f"YouTube data available: {bool(youtube_json)}")
-        st.write(f"Instagram data available: {bool(instagram_json)}")
+        # Merging results
+        with status_container.container():
+            st.subheader("Merging Results")
+            merge_progress = st.progress(0)
+            merge_status = st.empty()
+            
+            # If both analyses failed after attempting them, return empty model
+            if youtube_handle and instagram_handle and not youtube_json and not instagram_json:
+                merge_status.error("All attempted analyses failed. Returning empty model.")
+                return ContentCreatorInfo.create_empty()
+            
+            merge_status.text("Merging available data...")
+            merge_progress.progress(33)
+            
+            # Use whatever data we have
+            merged_model = merge_and_validate_content(youtube_json, instagram_json)
+            merge_progress.progress(66)
+            
+            # Convert merged model to dict for RAG input
+            merged_dict = merged_model.model_dump()
+            merged_json = json.dumps(merged_dict)
+            
+            merge_progress.progress(100)
+            merge_status.text("✓ Merge complete!")
+            
+            st.write(f"✓ Combined {len(merged_dict.get('values', []))} values")
+            st.write(f"✓ Combined {len(merged_dict.get('life_events', []))} life events")
         
-        # If both analyses failed after attempting them, return empty model
-        if youtube_handle and instagram_handle and not youtube_json and not instagram_json:
-            st.write("All attempted analyses failed. Returning empty model.")
-            return ContentCreatorInfo.create_empty()
-        
-        st.write("\n=== Merging Results ===")
-        # Use whatever data we have
-        merged_model = merge_and_validate_content(youtube_json, instagram_json)
-        
-        # Convert merged model to dict for RAG input
-        st.write("\n=== Preparing RAG Input ===")
-        merged_dict = merged_model.model_dump()
-        
-        # Print validation of merged data
-        st.write(f"Number of values in merged data: {len(merged_dict.get('values', []))}")
-        st.write(f"Number of life events in merged data: {len(merged_dict.get('life_events', []))}")
-        
-        # Convert to JSON string for RAG input
-        merged_json = json.dumps(merged_dict)
-        st.write("\n=== Passing to RAG Crew ===")
-        
-        # Pass to RAG Crew
-        result_rag = RagCrew().crew().kickoff(inputs={"input_string": merged_json})
-        st.write("\n=== RAG Processing Complete ===")
-        
-        return result_rag
+        # RAG Processing
+        with status_container.container():
+            st.subheader("Final Analysis")
+            rag_progress = st.progress(0)
+            rag_status = st.empty()
+            
+            rag_status.text("Processing with RAG Crew...")
+            rag_progress.progress(50)
+            
+            result_rag = RagCrew().crew().kickoff(inputs={"input_string": merged_json})
+            
+            rag_progress.progress(100)
+            rag_status.text("✓ Analysis complete!")
+            
+            return result_rag
         
     except ValueError as e:
         st.error(f"Validation error: {str(e)}")
@@ -404,6 +505,12 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str])
 def main():
     st.title("Creator Analysis Tool")
     
+    # Password protection
+    password = st.text_input("Enter password", type="password")
+    if not validate_password(password):
+        st.warning("Please enter the correct password to proceed.")
+        return
+    
     with st.form("creator_analysis_form"):
         youtube_handle = st.text_input("YouTube Channel Handle (optional)")
         instagram_handle = st.text_input("Instagram Handle (optional)")
@@ -413,207 +520,127 @@ def main():
         if not youtube_handle and not instagram_handle:
             st.error("At least one handle (YouTube or Instagram) is required")
         else:
-            result = run_analysis(youtube_handle, instagram_handle)
-            
-            if result is not None:
-                # Display the results exactly as they are
-                st.json(result.model_dump())
+            with st.spinner("Analyzing creator content..."):
+                result = run_analysis(youtube_handle, instagram_handle)
+                
+                if result is not None:
+                    st.success("Analysis complete!")
+                    
+                    # Display results
+                    with st.expander("View Results", expanded=True):
+                        st.json(result.model_dump())
+                    
+                    # Convert to markdown
+                    markdown_content = convert_to_markdown(result.model_dump())
+                    
+                    # Download button for markdown
+                    st.download_button(
+                        label="Download Report (Markdown)",
+                        data=markdown_content,
+                        file_name="creator_analysis.md",
+                        mime="text/markdown"
+                    )
 
 if __name__ == "__main__":
     main()
-    
+
 # def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str]) -> Dict[str, Any]:
 #     """
-#     Runs the integrated analysis with robust error handling and proper input formatting for RAG.
+#     Identical to original run() function but with Streamlit inputs.
 #     """
-#     if not youtube_handle and not instagram_handle:
-#         st.error("At least one handle (YouTube or Instagram) is required")
-#         return ContentCreatorInfo.create_empty()
-
-#     youtube_json = {}
-#     instagram_json = {}
-    
-#     progress_bar = st.progress(0)
-#     status_text = st.empty()
-    
-#     # Try YouTube analysis if handle provided
-#     if youtube_handle:
-#         status_text.text("=== YouTube Analysis ===")
-#         try:
-#             youtube_result = YoutubeCrew().crew().kickoff(inputs={"youtube_channel_handle": youtube_handle})
-#             if hasattr(youtube_result, 'pydantic'):
-#                 youtube_json = youtube_result.pydantic.dict()
-#                 with st.expander("YouTube Data Preview", expanded=True):
+#     try:
+#         # Make sure at least one handle is provided
+#         if not youtube_handle and not instagram_handle:
+#             raise ValueError("At least one handle (YouTube or Instagram) is required")
+        
+#         # Initialize variables
+#         youtube_json = {}
+#         instagram_json = {}
+        
+#         # Try YouTube analysis if handle provided
+#         if youtube_handle:
+#             st.write("\n=== YouTube Analysis ===")
+#             try:
+#                 youtube_result = YoutubeCrew().crew().kickoff(inputs={"youtube_channel_handle": youtube_handle})
+#                 if hasattr(youtube_result, 'pydantic'):
+#                     youtube_json = youtube_result.pydantic.dict()
 #                     st.write("YouTube Data Preview:")
 #                     st.write(f"- First Name: {youtube_json.get('first_name', 'Not found')}")
 #                     st.write(f"- Number of values: {len(youtube_json.get('values', []))}")
-#         except Exception as e:
-#             st.warning(f"Warning: Error analyzing YouTube content: {str(e)}")
-#             youtube_json = {}
-#         progress_bar.progress(0.4)
-    
-#     # Try Instagram analysis if handle provided
-#     if instagram_handle:
-#         status_text.text("=== Instagram Analysis ===")
-#         try:
-#             instagram_result = InstagramCrew().crew().kickoff(inputs={"instagram_username": instagram_handle})
-#             if hasattr(instagram_result, 'pydantic'):
-#                 instagram_json = instagram_result.pydantic.dict()
-#                 with st.expander("Instagram Data Preview", expanded=True):
+#             except Exception as e:
+#                 st.write(f"Warning: Error analyzing YouTube content: {str(e)}")
+#                 youtube_json = {}  # Reset to empty dict if failed
+        
+#         # Try Instagram analysis if handle provided
+#         if instagram_handle:
+#             st.write("\n=== Instagram Analysis ===")
+#             try:
+#                 instagram_result = InstagramCrew().crew().kickoff(inputs={"instagram_username": instagram_handle})
+#                 if hasattr(instagram_result, 'pydantic'):
+#                     instagram_json = instagram_result.pydantic.dict()
 #                     st.write("Instagram Data Preview:")
 #                     st.write(f"- First Name: {instagram_json.get('first_name', 'Not found')}")
 #                     st.write(f"- Number of values: {len(instagram_json.get('values', []))}")
-#         except Exception as e:
-#             st.warning(f"Warning: Error analyzing Instagram content: {str(e)}")
-#             instagram_json = {}
-#         progress_bar.progress(0.7)
-    
-#     # Status update
-#     status_text.text("=== Analysis Status ===")
-#     st.write(f"YouTube data available: {bool(youtube_json)}")
-#     st.write(f"Instagram data available: {bool(instagram_json)}")
-    
-#     # If both analyses failed after attempting them, return empty model
-#     if youtube_handle and instagram_handle and not youtube_json and not instagram_json:
-#         st.warning("All attempted analyses failed. Returning empty model.")
-#         progress_bar.empty()
-#         status_text.empty()
-#         return ContentCreatorInfo.create_empty()
-    
-#     status_text.text("=== Merging Results ===")
-#     merged_model = merge_and_validate_content(youtube_json, instagram_json)
-#     merged_dict = merged_model.model_dump()
-    
-#     status_text.text("=== Preparing RAG Input ===")
-#     # Convert to proper format for RAG input
-#     input_for_rag = {"input_string": json.dumps(merged_dict)}
-    
-#     status_text.text("=== Passing to RAG Crew ===")
-#     try:
-#         result_rag = RagCrew().crew().kickoff(inputs=input_for_rag)
-#         if result_rag is None:
-#             st.error("RAG analysis failed to produce results")
+#             except Exception as e:
+#                 st.write(f"Warning: Error analyzing Instagram content: {str(e)}")
+#                 instagram_json = {}  # Reset to empty dict if failed
+        
+#         # Status update
+#         st.write("\n=== Analysis Status ===")
+#         st.write(f"YouTube data available: {bool(youtube_json)}")
+#         st.write(f"Instagram data available: {bool(instagram_json)}")
+        
+#         # If both analyses failed after attempting them, return empty model
+#         if youtube_handle and instagram_handle and not youtube_json and not instagram_json:
+#             st.write("All attempted analyses failed. Returning empty model.")
 #             return ContentCreatorInfo.create_empty()
+        
+#         st.write("\n=== Merging Results ===")
+#         # Use whatever data we have
+#         merged_model = merge_and_validate_content(youtube_json, instagram_json)
+        
+#         # Convert merged model to dict for RAG input
+#         st.write("\n=== Preparing RAG Input ===")
+#         merged_dict = merged_model.model_dump()
+        
+#         # Print validation of merged data
+#         st.write(f"Number of values in merged data: {len(merged_dict.get('values', []))}")
+#         st.write(f"Number of life events in merged data: {len(merged_dict.get('life_events', []))}")
+        
+#         # Convert to JSON string for RAG input
+#         merged_json = json.dumps(merged_dict)
+#         st.write("\n=== Passing to RAG Crew ===")
+        
+#         # Pass to RAG Crew
+#         result_rag = RagCrew().crew().kickoff(inputs={"input_string": merged_json})
+#         st.write("\n=== RAG Processing Complete ===")
+        
+#         return result_rag
+        
+#     except ValueError as e:
+#         st.error(f"Validation error: {str(e)}")
+#         return None
 #     except Exception as e:
-#         st.error(f"Error in RAG processing: {str(e)}")
-#         return ContentCreatorInfo.create_empty()
-    
-#     progress_bar.progress(1.0)
-#     status_text.text("=== RAG Processing Complete ===")
-    
-#     # Clean up
-#     status_text.empty()
-#     progress_bar.empty()
-    
-#     return result_rag
+#         st.error(f"An unexpected error occurred: {str(e)}")
+#         return None
 
 # def main():
-#     # Initialize session state
-#     if 'analysis_history' not in st.session_state:
-#         st.session_state.analysis_history = []
-#     if 'last_run_time' not in st.session_state:
-#         st.session_state.last_run_time = None
-
-#     # Page configuration
-#     st.set_page_config(page_title="Creator Analysis Tool", page_icon="🎯", layout="wide")
-#     st.title("🎯 Creator Analysis Tool")
+#     st.title("Creator Analysis Tool")
     
-#     # Create input form
 #     with st.form("creator_analysis_form"):
-#         col1, col2 = st.columns(2)
-        
-#         with col1:
-#             youtube_handle = st.text_input(
-#                 "YouTube Channel Handle",
-#                 placeholder="Enter YouTube handle (optional)",
-#                 help="Enter the YouTube channel handle without the @ symbol"
-#             )
-        
-#         with col2:
-#             instagram_handle = st.text_input(
-#                 "Instagram Handle",
-#                 placeholder="Enter Instagram handle (optional)",
-#                 help="Enter the Instagram username without the @ symbol"
-#             )
-        
-#         analyze_button = st.form_submit_button("Analyze Creator", use_container_width=True)
+#         youtube_handle = st.text_input("YouTube Channel Handle (optional)")
+#         instagram_handle = st.text_input("Instagram Handle (optional)")
+#         analyze_button = st.form_submit_button("Analyze Creator")
 
-#     # Handle form submission
 #     if analyze_button:
 #         if not youtube_handle and not instagram_handle:
-#             st.warning("Please enter at least one handle (YouTube or Instagram)")
+#             st.error("At least one handle (YouTube or Instagram) is required")
 #         else:
-#             with st.spinner("Analyzing creator content..."):
-#                 result = run_analysis(youtube_handle, instagram_handle)
-                
-#                 if result and hasattr(result, 'pydantic'):
-#                     try:
-#                         # Store analysis record
-#                         analysis_record = {
-#                             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-#                             "youtube_handle": youtube_handle,
-#                             "instagram_handle": instagram_handle,
-#                             "execution_time": st.session_state.last_run_time
-#                         }
-#                         st.session_state.analysis_history.append(analysis_record)
-                        
-#                         # Show success message
-#                         st.success(f"Analysis completed in {st.session_state.last_run_time:.2f} seconds!")
-                        
-#                         # Get result dictionary safely
-#                         result_dict = result.pydantic.dict()
-                        
-#                         # Display results
-#                         st.header("Analysis Results")
-                        
-#                         # Creator name
-#                         st.subheader("Creator Information")
-#                         st.write(f"**Name:** {result_dict.get('first_name', '')} {result_dict.get('last_name', '')}")
-                        
-#                         # Display sections
-#                         sections = {
-#                             'values': 'Core Values',
-#                             'business': 'Business Details',
-#                             'challenges': 'Challenges & Learnings',
-#                             'achievements': 'Key Achievements',
-#                             'life_events': 'Significant Life Events'
-#                         }
-                        
-#                         for section, title in sections.items():
-#                             data = result_dict.get(section)
-#                             if data:
-#                                 with st.expander(title, expanded=True):
-#                                     if isinstance(data, list):
-#                                         for item in data:
-#                                             if section == 'values':
-#                                                 st.markdown(f"##### {item['name']}")
-#                                                 st.markdown(f"**Origin:** {item['origin']}")
-#                                                 st.markdown(f"**Impact Today:** {item['impact_today']}")
-#                                                 st.markdown("---")
-#                                             elif section == 'challenges':
-#                                                 st.markdown(f"**Challenge:** {item['description']}")
-#                                                 st.markdown(f"**Learnings:** {item['learnings']}")
-#                                                 st.markdown("---")
-#                                             elif section == 'life_events':
-#                                                 st.markdown(f"##### {item['name']}")
-#                                                 st.markdown(item['description'])
-#                                                 st.markdown("---")
-#                                             else:
-#                                                 st.markdown(f"- {item['description']}")
-#                                     else:  # For business section
-#                                         st.markdown(f"**{data['name']}**")
-#                                         st.markdown(f"**Description:** {data['description']}")
-#                                         st.markdown(f"**Genesis:** {data.get('genesis', 'Not available')}")
-#                     except Exception as e:
-#                         st.error(f"Error processing results: {str(e)}")
-#                 else:
-#                     st.error("Analysis failed to produce valid results")
+#             result = run_analysis(youtube_handle, instagram_handle)
+            
+#             if result is not None:
+#                 # Display the results exactly as they are
+#                 st.json(result.model_dump())
 
-#     # Display analysis history
-#     if st.session_state.analysis_history:
-#         st.header("Recent Analyses")
-#         for analysis in reversed(st.session_state.analysis_history[-5:]):
-#             with st.expander(f"Analysis from {analysis['timestamp']}", expanded=False):
-#                 st.write(f"**YouTube Handle:** {analysis['youtube_handle'] or 'N/A'}")
-#                 st.write(f"**Instagram Handle:** {analysis['instagram_handle'] or 'N/A'}")
-#                 st.write(f"**Execution Time:** {analysis['execution_time']:.2f} seconds")
+# if __name__ == "__main__":
+#     main()
