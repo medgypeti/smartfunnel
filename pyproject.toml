@@ -12,7 +12,7 @@ python = ">=3.11,<3.12"
 pyyaml = "^6.0"
 python-dotenv = "1.0.0"
 firecrawl-py = "^0.0.20"
-embedchain = { extras = ["youtube"], version = "^0.1.116" }
+embedchain = "0.1.124"
 ollama = "^0.2.1"
 requests = "^2.31.0"
 groq = "^0.11.0"
@@ -26,18 +26,17 @@ pydub = "^0.25.1"
 deepgram-sdk = "^3.1.5"
 typing-extensions = "^4.9.0"
 ast-decompiler = "^0.7.0"
-crewai = "0.76.2"
-crewai-tools = "0.13.2"
 validators = "0.22.0"
 ffmpeg-python = "0.2.0"
 python-ffmpeg = "2.0.10"
 pysqlite3-binary = "^0.5.4"
-
-
+crewai = "0.76.9"
+crewai-tools = "^0.13.4"
+asyncio = "^3.4.3"
 
 [tool.poetry.scripts]
-smartfunnel = "smartfunnel.app:main"  # Assuming there's a main() function in app.py
-run = "smartfunnel.app:main"
+smartfunnel = "smartfunnel.app2:main" 
+run = "smartfunnel.app2:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
