@@ -1,5 +1,14 @@
+from smartfunnel.sqlite_setup import ensure_pysqlite3
+ensure_pysqlite3()  # Call this before any other imports
 
-#!/usr/bin/env python
+import streamlit as st
+import sys
+import json
+# from smartfunnel.crew import LatestAiDevelopmentCrew
+import logging
+from typing import Optional
+from smartfunnel.tools.chroma_db_init import app_instance
+from smartfunnel.tools.chroma_db_init import cleanup_old_db
 import time
 from datetime import datetime
 import sys
@@ -10,21 +19,7 @@ from typing import List, Optional, Dict, Any, Union
 from smartfunnel.crew_youtube import YoutubeCrew
 from smartfunnel.crew_instagram import InstagramCrew
 from smartfunnel.crew_rag import RagCrew
-
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-
-
-from smartfunnel.sqlite_setup import ensure_pysqlite3
-ensure_pysqlite3()  # Call this before any other imports
-
-import streamlit as st
-import sys
-import json
-from smartfunnel.crew import LatestAiDevelopmentCrew
-import logging
-from typing import Optional
-from smartfunnel.tools.chroma_db_init import app_instance
-from smartfunnel.tools.chroma_db_init import cleanup_old_db
+#!/usr/bin/env python
 import time
 from datetime import datetime
 import sys
@@ -42,15 +37,15 @@ OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Streamlit configs
-try:
-    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-except Exception as e:
-    logger.warning(f"Error initializing Streamlit configs: {e}")
+# # Initialize Streamlit configs
+# try:
+#     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+# except Exception as e:
+#     logger.warning(f"Error initializing Streamlit configs: {e}")
 
-# Initialize Streamlit configs
-try:
-    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+# # Initialize Streamlit configs
+# try:
+#     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     
     # Reduce file watching using safer check
     import streamlit.runtime.scriptrunner as streamlit_runtime
