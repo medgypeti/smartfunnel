@@ -37,18 +37,19 @@ OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# # Initialize Streamlit configs
-# try:
-#     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-# except Exception as e:
-#     logger.warning(f"Error initializing Streamlit configs: {e}")
-
-# # Initialize Streamlit configs
-# try:
-#     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+# Initialize Streamlit configs
+try:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
     
     # Reduce file watching using safer check
     import streamlit.runtime.scriptrunner as streamlit_runtime
+    if streamlit_runtime.get_script_run_ctx():
+        st.set_option('server.fileWatcherType', 'none')
+except Exception as e:
+    logger.warning(f"Error initializing Streamlit configs: {e}")
+    
+    # Reduce file watching using safer check
+import streamlit.runtime.scriptrunner as streamlit_runtime
     if streamlit_runtime.get_script_run_ctx():
         st.set_option('server.fileWatcherType', 'none')
 except Exception as e:
