@@ -33,6 +33,7 @@ pysqlite3-binary = "^0.5.4"
 crewai = "0.76.9"
 crewai-tools = "^0.13.4"
 asyncio = "^3.4.3"
+plotly = "^5.19.0"
 
 [tool.poetry.scripts]
 smartfunnel = "smartfunnel.app2:main" 
