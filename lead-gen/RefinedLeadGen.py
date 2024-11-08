@@ -2406,7 +2406,7 @@ def main():
                                            placeholder="Please describe the specific task that needs automation",
                                            key="task_description")
             hours_per_task = st.number_input("Hours per Task", 
-                                           min_value=0, max_value=100, value=1,
+                                           min_value=0.0, max_value=100.0, value=1.0,
                                            step=0.5,
                                            key="hours_per_task")
             times_per_month = st.number_input("Times per Month", 
@@ -2492,7 +2492,7 @@ def main():
     case_studies = [
         {
             "title": "Marketing Agency Case Study Creation",
-            "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800",
+            "image": "https://i.ibb.co/fMmCdJZ/bastien-herve-Qeuy-VLx-Jw-BE-unsplash.jpg",
             "role": "Project Manager",
             "location": "Paris",
             "cost": "Cost savings: $9,309 per year",
@@ -2502,7 +2502,7 @@ def main():
         },
         {
             "title": "Private Equity Pitch Deck Automation",
-            "image": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800",
+            "image": "https://i.ibb.co/34yyhVW/mufid-majnun-v-L5m-CET3i1-U-unsplash.jpg",
             "role": "Strategy Consultant",
             "location": "New York",
             "cost": "Cost savings: $15,240 per year",
@@ -2512,16 +2512,15 @@ def main():
         },
         {
             "title": "Presidential First 100 Days",
-            "image": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=800",
+            "image": "https://i.ibb.co/vsBMx1S/charlesdeluvio-7tw1-GLJt7-BU-unsplash.jpg",
             "role": "President",
             "location": "Washington",
             "cost": "Cost savings: $222,923 per year",
             "time": "Time saved: 1,008 hours per year",
             "efficiency": "Efficiency gain: 48% of annual hours",
-            "description": "Optimized executive workflow for the first 100 days in office, enhancing decision-making efficiency."
-        }
-    ]
-    
+            "description": "Automated the first 100 days as president of the United States."
+        }] 
+
     display_case_studies(case_studies)
     # case_studies = [
     #     {
