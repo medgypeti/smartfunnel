@@ -1508,13 +1508,13 @@ def main():
                     
                     # Get automation analysis
                     automation_analysis = analyze_automation_potential(inputs, average_annual_salary)
-                    # if save_to_google_sheets(automation_analysis):
-                    #     st.success("Analysis saved successfully!")
-                    # else:
-                    #     st.warning("Analysis completed but couldn't be saved to database.")
+                    if save_to_google_sheets(automation_analysis):
+                        st.success("Analysis completed successfully!")
+                    else:
+                        st.warning("Analysis completed.")
                     
                     # Display Results
-                    st.success("✨ Analysis completed successfully!")
+                    # st.success("✨ Analysis completed successfully!")
                     
                     # Metrics Dashboard
                     create_metrics_dashboard(automation_analysis, average_annual_salary)
@@ -1590,10 +1590,10 @@ def main():
                     <p>
                         Hi, I'm Vlad. I started out building AI agents for Fire Scan. A lead-gen agency in the US. I automated parts of my outreach, content creation, and sales process. I'm now helping other entrepreneurs do the same. Reach out if you want to talk anything about AI, automation, entrepreneurship, or triathlons.
                     </p>
+                    <div style='margin-top: 20px; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; display: inline-block;'>
+                        <p style='margin: 0; color: white;'>✉️ <span style='font-weight: bold;'>vladimir@fire-scan.com</span></p>
+                    </div>
                 </div>
-            <div style='margin-top: 20px; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; display: inline-block;'>
-                <p style='margin: 0; color: white;'>✉️ <span style='font-weight: bold;'>vladimir@fire-scan.com</span></p>
-            </div>
             </div>
         </div>
     """, unsafe_allow_html=True)
