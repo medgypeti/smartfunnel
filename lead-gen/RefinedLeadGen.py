@@ -927,8 +927,8 @@ def create_header():
         <img class="hero-image" src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1500"
              alt="Digital Transformation">
         <div class="hero-text">
-            <div class="hero-title">🤖 Automation ROI Calculator</div>
-            <div class="hero-subtitle">Transform your business processes with data-driven automation decisions</div>
+            <div class="hero-title">Do you need AI agents?</div>
+            <div class="hero-subtitle">Estimate how much time and money you could save by automating your business processes</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -2586,22 +2586,19 @@ def main():
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    # st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown(create_cta_section(), unsafe_allow_html=True)
     # Add spacing before footer
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    # st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("""
         <div class="footer-container">
-        <a href="https://ibb.co/vwWs3np">
-            <img src="https://i.ibb.co/LkyQx7m/DSC01712.jpg" class="profile-image" alt="Vlad" />
+        <a href="https://ibb.co/hm2yXYy">
+            <img src="https://i.ibb.co/qrmd0Jd/DSC01712.jpg" class="profile-image" alt="Vlad" />
         </a>
         <div class="profile-text">
             <h3 style="color: white;">👋 Nice to meet you!</h3>
             <p>
-            Hi, I'm Vlad. I've been running my own lead-gen businesses. AI agents have changed how I run my businesses
-            and realised this could apply to so many other people. I started helping out friends who were entrepreneurs
-            and decided to turn this into an agency. Reach out if you want to talk anything about AI, automation,
-            entrepreneurship, running, or surfing.
+            Hi, I'm Vlad. AI agents have changed how I run my business. I started helping out friends who were entrepreneurs and decided to turn this into an agency. Reach out if you want to talk anything about AI, automation, entrepreneurship, running, or surfing.
             </p>
         </div>
         </div>
