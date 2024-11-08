@@ -24,7 +24,7 @@ load_dotenv()
 
 # Must be the first Streamlit command
 st.set_page_config(
-    page_title="Automation ROI Calculator",
+    page_title="AI agents assessment",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -2378,8 +2378,8 @@ def main():
         <img class="hero-image" src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1500"
              alt="Digital Transformation">
         <div class="hero-text">
-            <div class="hero-title">🤖 Automation ROI Calculator</div>
-            <div class="hero-subtitle">Transform your business processes with data-driven automation decisions</div>
+            <div class="hero-title">Do you need AI agents?</div>
+            <div class="hero-subtitle">Estimate how much time and money you could save by automating your business processes</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -2394,10 +2394,10 @@ def main():
         
         with col1:
             st.subheader("💼 Job Details")
-            job_query = st.text_input("Job Title", placeholder="e.g., Senior Procurement Manager", key="job_title")
-            location = st.text_input("Location", placeholder="e.g., New York", key="location")
-            company_activity = st.text_input("Company's Main Business Activity", 
-                                           placeholder="Please be specific about your company's main business",
+            job_query = st.text_input("Job Title", placeholder="The role to automate (e.g., Senior Procurement Manager)", key="job_title")
+            location = st.text_input("Location", placeholder="The location of the role (e.g., New York)", key="location")
+            company_activity = st.text_input("Company's main business activity", 
+                                           placeholder="What does your company do?",
                                            key="company_activity")
 
         with col2:
@@ -2406,8 +2406,8 @@ def main():
                                            placeholder="Please describe the specific task that needs automation",
                                            key="task_description")
             hours_per_task = st.number_input("Hours per Task", 
-                                           min_value=1, max_value=100, value=1,
-                                           step=1,
+                                           min_value=0, max_value=100, value=1,
+                                           step=0.5,
                                            key="hours_per_task")
             times_per_month = st.number_input("Times per Month", 
                                             min_value=1, max_value=100, value=1,
