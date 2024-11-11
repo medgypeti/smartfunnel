@@ -121,12 +121,13 @@ def extract_salary_info(search_results: Dict) -> List[str]:
         snippets.append(result.get('snippet', ''))
     return snippets
 
-def analyze_salaries_with_llm(snippets: List[str]) -> float:
+def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
     """
     Use Groq with LLaMA to analyze salary snippets and extract average total pay
+    Returns the list of found salaries instead of just the median
     """
     if not snippets:
-        return 0.0
+        return []
         
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
     
@@ -168,37 +169,22 @@ def analyze_salaries_with_llm(snippets: List[str]) -> float:
     2. Convert to USD: 50000 * 1.29 = 64500 USD
     Output: 64500
 
-    Input: "Hourly rate AED 100"
-    Steps:
-    1. Convert to annual: 100 * 2080 = 208000 AED
-    2. Convert to USD: 208000 * 0.2723 = 56638 USD
-    Output: 56638
-
-    Important rules:
-    - Only process explicitly stated compensation figures
-    - For ranges, use the maximum value
-    - Ignore experience-based variations
-    - Convert all values to annual USD
-    - Return only whole numbers
-    - Each snippet should produce at most one value
-    - Remove any values that are more than 2 standard deviations from the mean
-
     Here are the snippets to analyze:
     {json.dumps(snippets, indent=2)}
     """
     
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        model="llama3-70b-8192",
-        temperature=0.1,  # Reduced temperature for more consistent outputs
-    )
-    
     try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model="llama3-70b-8192",
+            temperature=0.1,  # Reduced temperature for more consistent outputs
+        )
+        
         # Get the response and split it into lines
         response_lines = chat_completion.choices[0].message.content.strip().split('\n')
         
@@ -221,15 +207,16 @@ def analyze_salaries_with_llm(snippets: List[str]) -> float:
             stdev = statistics.stdev(salaries)
             salaries = [s for s in salaries if abs(s - mean) <= 2 * stdev]
         
-        # Calculate median if we have valid salaries
+        # Return the list of salaries
         if salaries:
             print(f"Found valid total compensation figures: {salaries}")
-            return statistics.median(salaries)
-        return 0.0
+            return salaries
+        return []
         
     except Exception as e:
         print(f"Error processing LLM response: {e}")
-        return 0.0
+        return []
+        
 # def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
 #     """
 #     Use Groq with LLaMA to analyze salary snippets and extract average total pay
