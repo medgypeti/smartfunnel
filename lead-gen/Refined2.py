@@ -90,7 +90,7 @@ def fetch_salary_data(query: str, location: str) -> Dict:
     
     payload = json.dumps({
         "q": formatted_query,
-        "location": "United States",
+        "location": location,
         "type": "search",
         "engine": "google",
         "gl": "us"
@@ -111,42 +111,78 @@ def fetch_salary_data(query: str, location: str) -> Dict:
 
 def extract_salary_info(search_results: Dict) -> List[str]:
     """
-    Extract the first 4 snippet results from the search data
+    Extract the first 8 snippet results from the search data
     """
     if not search_results or 'organic' not in search_results:
         return []
         
     snippets = []
-    for result in search_results.get('organic', [])[:4]:
+    for result in search_results.get('organic', [])[:8]:
         snippets.append(result.get('snippet', ''))
     return snippets
 
-def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
+def analyze_salaries_with_llm(snippets: List[str]) -> float:
     """
     Use Groq with LLaMA to analyze salary snippets and extract average total pay
-    Returns list of found salaries instead of just the average
     """
     if not snippets:
-        return []
+        return 0.0
         
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
     
     prompt = f"""
-    Analyze these salary snippets and extract total compensation figures. Follow these rules:
-    1. Only include figures explicitly stated as total pay, total compensation, or total salary
-    2. If a range is given, use the average of the range
-    3. Convert hourly rates to annual (multiply by 2080)
-    4. Ignore experience-based salaries unless they're averages
-    5. Return each valid total compensation figure on a new line
-    6. Only return the numerical values, no text
-    
-    For example:
-    Input: "The estimated total pay is $100,000 to $120,000"
-    Output: 110000
-    
-    Input: "The average base salary is $80,000 with total compensation of $95,000"
-    Output: 95000
-    
+    You are a precise salary data analyst. Analyze these salary snippets and extract total annual compensation in USD. Follow these steps exactly:
+
+    1. First, identify if the salary is monthly or annual
+       - If monthly, multiply by 12 to get annual
+       - If hourly, multiply by 2080 (40 hours * 52 weeks) to get annual
+       
+    2. Then, handle currency conversion to USD using these exact rates:
+       AED to USD: multiply by 0.2723
+       GBP to USD: multiply by 1.29
+       EUR to USD: multiply by 1.09
+       CHF to USD: multiply by 1.16
+       CAD to USD: multiply by 0.73
+       AUD to USD: multiply by 0.66
+       CNY to USD: multiply by 0.14
+       HKD to USD: multiply by 0.13
+       
+    3. Return ONLY the final annual USD amount as a whole number (no decimals)
+       - Format: one number per line
+       - No text, just the number
+       - No currency symbols
+       - No commas
+       - No trailing zeros
+       
+    Examples of correct processing:
+
+    Input: "Monthly salary AED 10000"
+    Steps:
+    1. Convert to annual: 10000 * 12 = 120000 AED
+    2. Convert to USD: 120000 * 0.2723 = 32676 USD
+    Output: 32676
+
+    Input: "Annual salary £50000"
+    Steps:
+    1. Already annual, no conversion needed
+    2. Convert to USD: 50000 * 1.29 = 64500 USD
+    Output: 64500
+
+    Input: "Hourly rate AED 100"
+    Steps:
+    1. Convert to annual: 100 * 2080 = 208000 AED
+    2. Convert to USD: 208000 * 0.2723 = 56638 USD
+    Output: 56638
+
+    Important rules:
+    - Only process explicitly stated compensation figures
+    - For ranges, use the maximum value
+    - Ignore experience-based variations
+    - Convert all values to annual USD
+    - Return only whole numbers
+    - Each snippet should produce at most one value
+    - Remove any values that are more than 2 standard deviations from the mean
+
     Here are the snippets to analyze:
     {json.dumps(snippets, indent=2)}
     """
@@ -159,6 +195,7 @@ def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
             }
         ],
         model="llama3-70b-8192",
+        temperature=0.1,  # Reduced temperature for more consistent outputs
     )
     
     try:
@@ -169,19 +206,92 @@ def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
         salaries = []
         for line in response_lines:
             try:
+                # Clean the string and convert to float
                 cleaned_value = ''.join(c for c in line if c.isdigit() or c == '.')
                 if cleaned_value:
                     value = float(cleaned_value)
-                    if value > 0:  # Only include positive values
+                    if value > 5000:  # Basic sanity check for annual salary
                         salaries.append(value)
             except ValueError:
                 continue
         
-        return salaries if salaries else []
+        # Remove outliers (values more than 2 standard deviations from mean)
+        if len(salaries) > 2:
+            mean = statistics.mean(salaries)
+            stdev = statistics.stdev(salaries)
+            salaries = [s for s in salaries if abs(s - mean) <= 2 * stdev]
+        
+        # Calculate median if we have valid salaries
+        if salaries:
+            print(f"Found valid total compensation figures: {salaries}")
+            return statistics.median(salaries)
+        return 0.0
         
     except Exception as e:
         print(f"Error processing LLM response: {e}")
-        return []
+        return 0.0
+# def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
+#     """
+#     Use Groq with LLaMA to analyze salary snippets and extract average total pay
+#     Returns list of found salaries instead of just the average
+#     """
+#     if not snippets:
+#         return []
+        
+#     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+    
+#     prompt = f"""
+#     Analyze these salary snippets and extract total compensation figures. Follow these rules:
+#     1. Only include figures explicitly stated as total pay, total compensation, or total salary
+#     2. If a range is given, use the average of the range
+#     3. Convert hourly rates to annual (multiply by 2080)
+#     4. Ignore experience-based salaries unless they're averages
+#     5. Return each valid total compensation figure on a new line
+#     6. Only return the numerical values, no text
+    
+#     For example:
+#     Input: "The estimated total pay is $100,000 to $120,000"
+#     Output: 110000
+    
+#     Input: "The average base salary is $80,000 with total compensation of $95,000"
+#     Output: 95000
+    
+#     Here are the snippets to analyze:
+#     {json.dumps(snippets, indent=2)}
+#     """
+    
+#     chat_completion = client.chat.completions.create(
+#         messages=[
+#             {
+#                 "role": "user",
+#                 "content": prompt
+#             }
+#         ],
+#         model="llama3-70b-8192",
+#     )
+    
+#     try:
+#         # Get the response and split it into lines
+#         response_lines = chat_completion.choices[0].message.content.strip().split('\n')
+        
+#         # Convert each line to a float, removing any non-numeric characters
+#         salaries = []
+#         for line in response_lines:
+#             try:
+#                 cleaned_value = ''.join(c for c in line if c.isdigit() or c == '.')
+#                 if cleaned_value:
+#                     value = float(cleaned_value)
+#                     if value > 0:  # Only include positive values
+#                         salaries.append(value)
+#             except ValueError:
+#                 continue
+        
+#         return salaries if salaries else []
+        
+#     except Exception as e:
+#         print(f"Error processing LLM response: {e}")
+#         return []
+
 
 def calculate_task_costs(annual_salary: float, hours_per_task: float, times_per_month: int) -> CostProjections:
     """
