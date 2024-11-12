@@ -216,69 +216,6 @@ def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
     except Exception as e:
         print(f"Error processing LLM response: {e}")
         return []
-        
-# def analyze_salaries_with_llm(snippets: List[str]) -> List[float]:
-#     """
-#     Use Groq with LLaMA to analyze salary snippets and extract average total pay
-#     Returns list of found salaries instead of just the average
-#     """
-#     if not snippets:
-#         return []
-        
-#     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-    
-#     prompt = f"""
-#     Analyze these salary snippets and extract total compensation figures. Follow these rules:
-#     1. Only include figures explicitly stated as total pay, total compensation, or total salary
-#     2. If a range is given, use the average of the range
-#     3. Convert hourly rates to annual (multiply by 2080)
-#     4. Ignore experience-based salaries unless they're averages
-#     5. Return each valid total compensation figure on a new line
-#     6. Only return the numerical values, no text
-    
-#     For example:
-#     Input: "The estimated total pay is $100,000 to $120,000"
-#     Output: 110000
-    
-#     Input: "The average base salary is $80,000 with total compensation of $95,000"
-#     Output: 95000
-    
-#     Here are the snippets to analyze:
-#     {json.dumps(snippets, indent=2)}
-#     """
-    
-#     chat_completion = client.chat.completions.create(
-#         messages=[
-#             {
-#                 "role": "user",
-#                 "content": prompt
-#             }
-#         ],
-#         model="llama3-70b-8192",
-#     )
-    
-#     try:
-#         # Get the response and split it into lines
-#         response_lines = chat_completion.choices[0].message.content.strip().split('\n')
-        
-#         # Convert each line to a float, removing any non-numeric characters
-#         salaries = []
-#         for line in response_lines:
-#             try:
-#                 cleaned_value = ''.join(c for c in line if c.isdigit() or c == '.')
-#                 if cleaned_value:
-#                     value = float(cleaned_value)
-#                     if value > 0:  # Only include positive values
-#                         salaries.append(value)
-#             except ValueError:
-#                 continue
-        
-#         return salaries if salaries else []
-        
-#     except Exception as e:
-#         print(f"Error processing LLM response: {e}")
-#         return []
-
 
 def calculate_task_costs(annual_salary: float, hours_per_task: float, times_per_month: int) -> CostProjections:
     """
@@ -770,122 +707,6 @@ def create_styles():
     }
     </style>
     """
-
-# def create_styles():
-#     return """
-#     <style>
-#     /* Header/Hero Section */
-#     .hero-container {
-#         position: relative;
-#         width: 100%;
-#         height: 40vh;          /* 40% of viewport height */
-#         overflow: hidden;
-#         border-radius: 15px;
-#         margin-bottom: 2rem;
-#     }
-#     .hero-image {
-#         position: absolute;
-#         width: 100%;
-#         height: 100%;
-#         object-fit: cover;
-#         filter: brightness(0.5);  /* Darkens image for better text readability */
-#     }
-#     .hero-text {
-#         position: absolute;
-#         top: 50%;
-#         left: 50%;
-#         transform: translate(-50%, -50%);
-#         text-align: center;
-#         color: white;
-#         width: 80%;
-#         z-index: 10;           /* Ensures text stays above image */
-#     }
-#     .hero-title {
-#         font-size: 3rem;
-#         font-weight: bold;
-#         margin-bottom: 1rem;
-#         text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-#     }
-#     .hero-subtitle {
-#         font-size: 1.2rem;
-#         text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-#     }
-
-#     /* CTA Section */
-#     .cta-container {
-#         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-#         padding: 40px;
-#         border-radius: 15px;
-#         color: white;
-#         text-align: center;
-#         margin: 40px 0;
-#         width: 100%;
-#     }
-#     .cta-title {
-#         font-size: 2.5rem;
-#         margin-bottom: 20px;
-#         color: white;
-#     }
-#     .cta-description {
-#         font-size: 1.2rem;
-#         margin: 20px 0;
-#         color: rgba(255, 255, 255, 0.9);
-#     }
-#     .cta-buttons {
-#         margin-top: 30px;
-#     }
-#     .cta-button {
-#         display: inline-block;
-#         padding: 15px 40px;
-#         border-radius: 30px;
-#         font-weight: bold;
-#         margin: 10px 20px;
-#         font-size: 1.1rem;
-#         text-decoration: none;
-#         transition: all 0.3s ease;
-#     }
-#     .cta-button:hover {
-#         transform: translateY(-3px);
-#         box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-#     }
-#     .cta-button.primary {
-#         background-color: #00ff88;
-#         color: #1a1a1a;
-#         box-shadow: 0 4px 15px rgba(0,255,136,0.3);
-#     }
-#     .cta-button.secondary {
-#         background-color: #ff3366;
-#         color: white;
-#         box-shadow: 0 4px 15px rgba(255,51,102,0.3);
-#     }
-#     .cta-button:hover {
-#         transform: translateY(-3px);
-#         box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-#     }
-    
-#     /* Footer Styling */
-#     .footer-container {
-#         background: linear-gradient(135deg, #1a1a1a 0%, #2d3436 100%);
-#         padding: 3rem;
-#         border-radius: 15px;
-#         color: white;
-#         margin: 40px 0;
-#         display: flex; 
-#         align-items: center;
-#         gap: 30px;
-#     }
-#     .profile-image {
-#         width: 150px;
-#         height: 150px;
-#         border-radius: 75px;
-#         border: 4px solid #00ff88;
-#         box-shadow: 0 4px 15px rgba(0,255,136,0.3);
-#     }
-#     .profile-text {
-#         flex: 1;
-#     }
-#     </style>
-#     """
 
 def create_donut_chart(task_steps):
     """Create a donut chart for task breakdown with better readability"""
@@ -1420,27 +1241,6 @@ def create_cta_section():
     </div>
     """
 
-# def create_cta_section():
-#     return """
-#     <div class="cta-container">
-#         <h2 class="cta-title">You still think it doesn't apply to you?</h2>
-#         <p class="cta-description">See practical examples of how AI agents can help you.</p>
-#         <div class="cta-buttons">
-#             <a href='https://cal.com/vladimir-de-ziegler-uyu7qb/15min' 
-#                target='_blank' 
-#                class='cta-button primary'>
-#                 🗓️ Let's talk
-#             </a>
-#             <a href='https://www.youtube.com/@CrewYourCompany-q2c' 
-#                target='_blank' 
-#                class='cta-button secondary'>
-#                 📺 2' mins videos with practical examples
-#             </a>
-#         </div>
-#     </div>
-#     """
-
-
 # Constants for Google Sheets API
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1aDla1mfz8QJ298cUWSt7OUKrdwb3QlHjpc2MZILHwO0'
@@ -1514,16 +1314,32 @@ def main():
 
     
     # Hero Header
+    # Updated Hero Header with Video
     st.markdown("""
-    <div class="hero-container">
-        <img class="hero-image" src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1500"
-             alt="Digital Transformation">
-        <div class="hero-text">
-            <div class="hero-title">Do you need AI agents?</div>
-            <div class="hero-subtitle">Estimate how much time and money you could save by automating your business processes</div>
-        </div>
+    <h1 style="text-align: center; margin-bottom: 1rem; font-size: 3rem; font-weight: bold;">
+        Do you even need an AI agent?
+    </h1>
+    <p style="text-align: center; margin-bottom: 2rem; font-size: 1.5rem; color: #4a5568;">
+        Calculate how many hours & dollars you could save with automation 💰
+    </p>
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; margin-bottom: 2rem;">
+        <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+                src="https://www.tella.tv/video/cm3epo9b7000903jw99cs4r0a/embed?b=1&title=1&a=1&loop=0&autoPlay=true&t=0&muted=1&wt=1" 
+                allowfullscreen 
+                allowtransparency>
+        </iframe>
     </div>
     """, unsafe_allow_html=True)
+    # st.markdown("""
+    # <div class="hero-container">
+    #     <img class="hero-image" src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1500"
+    #          alt="Digital Transformation">
+    #     <div class="hero-text">
+    #         <div class="hero-title">Do you need AI agents?</div>
+    #         <div class="hero-subtitle">Estimate how much time and money you could save by automating your business processes</div>
+    #     </div>
+    # </div>
+    # """, unsafe_allow_html=True)
     
     # Input Form Container
     with st.container():
@@ -1556,11 +1372,11 @@ def main():
 
         # Center the button
         col1, col2, col3 = st.columns([1,2,1])
-        with col2:
-            analyze_button = st.button("🚀 Generate ROI Analysis", type="primary", use_container_width=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
+        # Add extra space using one of these methods:
+        # st.markdown("<br>", unsafe_allow_html=True)  # Option 1
+        st.write("")  # Option 2 (can add multiple for more space)
+        analyze_button = st.button("🚀 Generate ROI Analysis", type="primary", use_container_width=True)
+            
     # Analysis Results Section
     if analyze_button:
         with st.container():
@@ -1656,14 +1472,14 @@ def main():
             "description": "Automate your pitch creation process to convert more prospects."
         },
         {
-            "title": "Presidential First 100 Days",
+            "title": "Validate market demand for your product",
             "image": "https://i.ibb.co/vsBMx1S/charlesdeluvio-7tw1-GLJt7-BU-unsplash.jpg",
-            "role": "President",
-            "location": "Washington",
-            "cost": "Cost savings: $222,923 per year",
-            "time": "Time saved: 1,008 hours per year",
-            "efficiency": "Efficiency gain: 48% of annual hours",
-            "description": "If the next president were to rely on AI agents to pass his first bills."
+            "role": "Product Manager",
+            "location": "San Francisco",
+            "cost": "Cost savings: $47,690 per year",
+            "time": "Time saved: 480 hours per year",
+            "efficiency": "Efficiency gain: 23% of annual hours",
+            "description": "Validate market demand for your product by automating your research."
         }] 
 
     display_case_studies(case_studies)
