@@ -1482,12 +1482,14 @@ def main():
             "description": "Validate market demand for your product by automating your research."
         }] 
 
+    st.markdown(create_cta_section(), unsafe_allow_html=True)
+
     display_case_studies(case_studies)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
     # st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown(create_cta_section(), unsafe_allow_html=True)
+    # st.markdown(create_cta_section(), unsafe_allow_html=True)
     # Add spacing before footer
     # Update the footer section
     st.markdown("""
