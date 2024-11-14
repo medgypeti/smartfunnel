@@ -289,6 +289,9 @@ def analyze_automation_potential(inputs: Dict[str, any], annual_salary: float) -
     Use LLM to analyze automation potential and generate recommendations
     Returns structured AutomationObject
     """
+    hours_per_year_before = inputs['hours_per_task'] * inputs['times_per_month'] * 12
+    hours_per_year_after = hours_per_year_before * 0.2  # Assuming 80% automation
+    hours_saved_per_year = hours_per_year_before - hours_per_year_after
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
     
     prompt = f"""
@@ -378,13 +381,21 @@ def analyze_automation_potential(inputs: Dict[str, any], annual_salary: float) -
         time_section = next((section for section in sections if 'TIME_ANALYSIS:' in section), '')
         time_lines = [line.strip() for line in time_section.split('\n')[1:] if ':' in line]
         
-        time_analysis = {
-            "hours_per_task": inputs['hours_per_task'],
-            "times_per_month": inputs['times_per_month'],
-            "hours_per_year_before": float(''.join(c for c in time_lines[0].split(':')[1] if c.isdigit() or c == '.')),
-            "hours_per_year_after": float(''.join(c for c in time_lines[1].split(':')[1] if c.isdigit() or c == '.')),
-            "hours_saved_per_year": float(''.join(c for c in time_lines[2].split(':')[1] if c.isdigit() or c == '.'))
-        }
+        # time_analysis = {
+        #     "hours_per_task": inputs['hours_per_task'],
+        #     "times_per_month": inputs['times_per_month'],
+        #     "hours_per_year_before": float(''.join(c for c in time_lines[0].split(':')[1] if c.isdigit() or c == '.')),
+        #     "hours_per_year_after": float(''.join(c for c in time_lines[1].split(':')[1] if c.isdigit() or c == '.')),
+        #     "hours_saved_per_year": float(''.join(c for c in time_lines[2].split(':')[1] if c.isdigit() or c == '.'))
+        # }
+
+        time_analysis = TimeAnalysis(
+            hours_per_task=inputs['hours_per_task'],
+            times_per_month=inputs['times_per_month'],
+            hours_per_year_before=hours_per_year_before,
+            hours_per_year_after=hours_per_year_after,
+            hours_saved_per_year=hours_saved_per_year
+        )
         
         # Parse ROI analysis
         roi_section = next((section for section in sections if 'ROI_ANALYSIS:' in section), '')
@@ -435,7 +446,7 @@ def analyze_automation_potential(inputs: Dict[str, any], annual_salary: float) -
             task_completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": task_prompt}],
                 model="llama3-70b-8192",
-                temperature=0.7
+                temperature=0.3
             )
             
             # Parse the task steps
@@ -465,8 +476,8 @@ def analyze_automation_potential(inputs: Dict[str, any], annual_salary: float) -
             hours_per_task=inputs['hours_per_task'],
             times_per_month=inputs['times_per_month'],
             hours_per_year_before=inputs['hours_per_task'] * inputs['times_per_month'] * 12,
-            hours_per_year_after=inputs['hours_per_task'] * inputs['times_per_month'] * 12 * 0.2,
-            hours_saved_per_year=inputs['hours_per_task'] * inputs['times_per_month'] * 12 * 0.8
+            hours_per_year_after=inputs['hours_per_task'] * inputs['times_per_month'] * 12,
+            hours_saved_per_year=inputs['hours_per_task'] * inputs['times_per_month'] * 12
         )
         
         cost_projections = calculate_task_costs(
@@ -1363,11 +1374,11 @@ def main():
                                            placeholder="Please describe the specific task that needs automation",
                                            key="task_description")
             hours_per_task = st.number_input("Hours per Task", 
-                                           min_value=0.0, max_value=100.0, value=1.0,
+                                           min_value=0.0, max_value=10000.0, value=1.0,
                                            step=0.5,
                                            key="hours_per_task")
             times_per_month = st.number_input("Times per Month", 
-                                            min_value=1, max_value=100, value=1,
+                                            min_value=1, max_value=10000, value=1,
                                             key="times_per_month")
 
         # Center the button
