@@ -119,7 +119,7 @@ class PostInfo(BaseModel):
 
 class FetchToAddInstagramAudioInput(BaseModel):
     """Input for FetchToAddInstagramAudio."""
-    instagram_username: str = Field(..., description="The Instagram username to fetch posts from")
+    instagram_handle: str = Field(..., description="The Instagram handle to fetch posts from")
 
 class FetchToAddInstagramAudioOutput(BaseModel):
     """Output containing results of fetch and audio processing."""
@@ -406,7 +406,7 @@ class FetchToAddInstagramAudioTool(BaseTool):
         except Exception as e:
             logger.error(f"Error processing video for post {post_metadata['post_id']}: {str(e)}")
             return False
-        
+
     def _analyze_post_relevance(self, post: PostInfo) -> float:
         """
         Analyze post caption for personal story relevance using Groq LLM.
@@ -414,28 +414,79 @@ class FetchToAddInstagramAudioTool(BaseTool):
         """
         try:
             prompt = f"""
-            Rate the following Instagram post caption on a scale of 1-10 based on how much it reveals about the creator's personal story, journey, or experiences.
+            You are a content analyzer. Rate the following Instagram post caption on a scale of 1-10 based on how much it reveals about the creator's personal story, journey, or experiences.
             A score of 1 means it's purely promotional or unrelated to personal stories.
             A score of 10 means it's a deep, meaningful personal story or reflection.
 
             Caption: {post.caption}
 
-            Only respond with a single number between 1 and 10. No other text.
+            Respond with ONLY a single number between 1 and 10, with no additional text, explanation, or newlines.
+            Example correct response: 7
             """
 
             response = self.groq_client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
+                model="mixtral-8x7b-32768",
+                messages=[
+                    {"role": "system", "content": "You are a content analyzer that only responds with a single number between 1 and 10."},
+                    {"role": "user", "content": prompt}
+                ],
                 temperature=0.1,
                 max_tokens=5
             )
 
-            score = float(response.choices[0].message.content.strip())
-            return min(max(score, 1), 10)  # Ensure score is between 1 and 10
+            # Get the raw response text and clean it
+            response_text = response.choices[0].message.content.strip()
+            
+            # Extract just the first number from the response using regex
+            import re
+            number_match = re.search(r'\d+', response_text)
+            if not number_match:
+                logger.warning(f"No valid number found in response: '{response_text}'. Defaulting to 1.")
+                return 1.0
+                
+            score = float(number_match.group())
+            
+            # Ensure the score is within bounds
+            if score < 1 or score > 10:
+                logger.warning(f"Score {score} out of bounds. Clamping to range 1-10.")
+                score = max(1.0, min(10.0, score))
+                
+            return score
 
         except Exception as e:
             logger.error(f"Error analyzing post relevance: {str(e)}")
-            return 0.0
+            logger.error(f"Raw response was: {response_text if 'response_text' in locals() else 'No response received'}")
+            return 1.0  # Default to lowest relevance score on error        
+    # def _analyze_post_relevance(self, post: PostInfo) -> float:
+    #     """
+    #     Analyze post caption for personal story relevance using Groq LLM.
+    #     Returns a relevance score from 0 to 10.
+    #     """
+    #     try:
+    #         prompt = f"""
+    #         Rate the following Instagram post caption on a scale of 1-10 based on how much it reveals about the creator's personal story, journey, or experiences.
+    #         A score of 1 means it's purely promotional or unrelated to personal stories.
+    #         A score of 10 means it's a deep, meaningful personal story or reflection.
+
+    #         Caption: {post.caption}
+
+    #         Only respond with a single number between 1 and 10. No other text.
+    #         """
+
+    #         response = self.groq_client.chat.completions.create(
+    #             model="mixtral-8x7b-32768",
+    #             # model="llama-3.1-70b-versatile",
+    #             messages=[{"role": "user", "content": prompt}],
+    #             temperature=0.1,
+    #             max_tokens=5
+    #         )
+
+    #         score = float(response.choices[0].message.content.strip())
+    #         return min(max(score, 1), 10)  # Ensure score is between 1 and 10
+
+    #     except Exception as e:
+    #         logger.error(f"Error analyzing post relevance: {str(e)}")
+    #         return 0.0
 
     def _fetch_and_rank_posts(self, profile: Any, max_posts: int = 30) -> List[PostInfo]:
         """
@@ -473,16 +524,17 @@ class FetchToAddInstagramAudioTool(BaseTool):
         # Sort posts by relevance score and return top ones
         ranked_posts = sorted(all_posts, key=lambda x: x.relevance_score, reverse=True)
         return ranked_posts[:40]  # Return top 40 most relevant posts
+        # return ranked_posts[:5]  # Return all posts
 
-    def _run(self, instagram_username: str) -> str:
+    def _run(self, instagram_handle: str) -> str:
         if not self.is_initialized:
             self.initialize_for_new_creator()
             
         try:
-            logger.info(f"Fetching posts for user: {instagram_username}")
+            logger.info(f"Fetching posts for user: {instagram_handle}")
             profile = self._retry_operation(lambda: instaloader.Profile.from_username(
                 self._get_instaloader_instance().context, 
-                instagram_username
+                instagram_handle
             ))
             
             if profile is None:

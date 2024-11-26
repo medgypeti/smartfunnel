@@ -2,7 +2,7 @@
 import sys
 import json
 # from smartfunnel.crew import LatestAiDevelopmentCrew
-from smartfunnel.crew_instagram import InstagramCrew
+from crew_instagram import InstagramCrew
 import streamlit as st
 
 from pydantic import BaseModel, Field
@@ -110,6 +110,8 @@ class ContentCreatorInfo(BaseModel):
     achievements: Optional[List[AchievementObject]] = Field(default_factory=list)
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    full_name: Optional[str] = None
+    main_language: Optional[str] = None
 
     @classmethod
     def default(cls) -> 'ContentCreatorInfo':
@@ -120,7 +122,9 @@ class ContentCreatorInfo(BaseModel):
             business=BusinessObject.default(),
             values=[ValueObject.default()],
             challenges=[ChallengeObject.default()],
-            achievements=[AchievementObject.default()]
+            achievements=[AchievementObject.default()],
+            full_name="",
+            main_language=""
         )
     
     def update(self, new_info):
@@ -138,8 +142,6 @@ class ContentCreatorInfo(BaseModel):
             # Handle updating from other types of objects if needed
             pass
 
-
-    
 def save_output_to_markdown(crew_output, filename="creatorOutput.md"):
     """
     Save crew output to a markdown file with proper error handling.
@@ -168,10 +170,14 @@ def run():
     Ask for YouTube and Instagram handles and process them.
     """
     try:
-        instagram_username = input("Please enter the Instagram username to analyze:\n").strip()
+        instagram_handle = input("Please enter the Instagram handle to analyze:\n").strip()
+        full_name = input("Please enter the full name of the creator:\n").strip()
+        main_language = input("Please enter the main language of the creator:\n").strip()
         
         inputs = {
-            "instagram_username": instagram_username
+            "instagram_handle": instagram_handle,
+            "full_name": full_name,
+            "main_language": main_language
         }
         
         # Run the crew

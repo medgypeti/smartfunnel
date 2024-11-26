@@ -6,6 +6,8 @@ prompting_rag_task:
     values, business, tone_of_voice, constraints, and emojis sections. UNLESS the creator does not have an equivalent. 
     IMPORTANT: DO NOT MAKE UP INFORMATION.
     Structure guidelines:
+    The [first_name] and [last_name] are the first name and last name of the creator. Use it to start the narrative. (e.g. "Your name is [first_name] [last_name].")
+    The [main_language] is the main language of the creator. Mention it in the narrative (e.g. "And you are French.")
     The [life_events] is a list of LifeEventObject which covers the creator's life events. Use it to personalize the [persona].
     The [achievements] is a list of AchievementObject which covers the creator's achievements. Use it to personalize the [persona].
     The [business] is an object of BusinessObject which covers the creator's business. Use it to personalize the [persona] section of the template.

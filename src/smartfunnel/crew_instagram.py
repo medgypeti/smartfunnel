@@ -4,16 +4,16 @@ from crewai.project import CrewBase, agent, crew, task
 import sys
 import os
 
-from smartfunnel.tools.chroma_db_init import app_instance
+from tools.chroma_db_init import app_instance
 
-from smartfunnel.tools.FetchRelevantVideosFromYouTubeChannelTool import FetchRelevantVideosFromYouTubeChannelTool
-from smartfunnel.tools.AddVideoToVectorDBTool import AddVideoToVectorDBTool
-from smartfunnel.tools.QueryVectorDBTool import QueryVectorDBTool
+from tools.FetchRelevantVideosFromYouTubeChannelTool import FetchRelevantVideosFromYouTubeChannelTool
+from tools.AddVideoToVectorDBTool import AddVideoToVectorDBTool
+from tools.QueryVectorDBTool import QueryVectorDBTool
 
-from smartfunnel.tools.FetchToAddInstagramAudioTool import FetchToAddInstagramAudioTool
-from smartfunnel.tools.QueryInstagramDBTool import QueryInstagramDBTool
+from tools.FetchToAddInstagramAudioTool import FetchToAddInstagramAudioTool
+from tools.QueryInstagramDBTool import QueryInstagramDBTool
 
-from smartfunnel.tools.PromptingRagTool import PromptingRagTool
+from tools.PromptingRagTool import PromptingRagTool
 
 from crewai_tools import SerperDevTool
 from typing import List, Optional
@@ -44,10 +44,10 @@ fetch_to_add_instagram_audio_tool = FetchToAddInstagramAudioTool(app=app_instanc
 query_instagram_db_tool = QueryInstagramDBTool(app=app_instance)
 
 
-from smartfunnel.tools.InputValidationTool import InputValidationTool
+from tools.InputValidationTool import InputValidationTool
 input_validation_tool = InputValidationTool()
 
-from smartfunnel.tools.ResettingTool import ResetDatabaseTool
+from tools.ResettingTool import ResetDatabaseTool
 reset_database_tool = ResetDatabaseTool(app=app_instance)
 
 from typing import List, Optional, Dict
@@ -174,12 +174,21 @@ class ContentCreatorInfo(BaseModel):
         None, 
         description="The last name of the content creator"
     )
-
+    full_name: Optional[str] = Field(
+        None, 
+        description="The full name of the content creator"
+    )
+    main_language: Optional[str] = Field(
+        None, 
+        description="The main language of the content creator"
+    )
     @classmethod
     def default(cls) -> 'ContentCreatorInfo':
         return cls(
             first_name="",
             last_name="",
+            full_name="",
+            main_language="",
             life_events=[LifeEventObject.default()],
             business=BusinessObject.default(),
             values=[ValueObject.default()],
@@ -233,21 +242,20 @@ class InstagramCrew():
             allow_delegation=False,
             llm=ChatOpenAI(model="gpt-4o-mini")
         )
-    
-    # @agent
-    # def prompting_rag_agent(self) -> Agent:
-    #     return Agent(
-    #         config=self.agents_config['prompting_rag_agent'],
-    #         tools=[PromptingRagTool()],
-    #         verbose=True,
-    #         allow_delegation=False,
-    #         llm=ChatOpenAI(model="gpt-4o-mini")
-    #     )
 
     @agent
     def merge_results_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['merge_results_agent'],
+            verbose=True,
+            allow_delegation=False,
+            llm=ChatOpenAI(model="gpt-4o-mini")
+        )
+    
+    @agent
+    def personal_details_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['personal_details_agent'],
             verbose=True,
             allow_delegation=False,
             llm=ChatOpenAI(model="gpt-4o-mini")
@@ -258,6 +266,13 @@ class InstagramCrew():
         return Task(
             config=self.tasks_config['database_manager_task'],
             tools=[reset_database_tool]
+        )
+    
+    @task
+    def find_personal_details_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['find_personal_details_task'],
+            output_pydantic=ContentCreatorInfo,
         )
 
     @task
@@ -310,14 +325,6 @@ class InstagramCrew():
             output_pydantic=ContentCreatorInfo,
             # async_execution=True
         )
-    
-    @task
-    def find_name_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['find_name_task'],
-            tools=[query_instagram_db_tool],
-            output_pydantic=ContentCreatorInfo,
-        )
 
     @task
     def merge_results_task(self) -> Task:
@@ -325,33 +332,8 @@ class InstagramCrew():
             config=self.tasks_config['merge_results_task'],
             output_pydantic=ContentCreatorInfo,
             output_file="pydanticInstagram.md",
-            context=[self.find_life_events_task(), self.find_business_task(), self.find_values_task(), self.find_challenges_task(), self.find_achievements_task(), self.find_name_task()]
+            context=[self.find_personal_details_task(), self.find_life_events_task(), self.find_business_task(), self.find_values_task(), self.find_challenges_task(), self.find_achievements_task()]
         )
-
-    # @task
-    # def prompting_rag_task(self) -> Task:
-    #     return Task(
-    #         config=self.tasks_config['prompting_rag_task'],
-    #         tools=[PromptingRagTool()],
-    #         output_file="instagram_rag_task_output.txt",
-
-    #     )
-
-    # @task
-    # def find_instagram_information_task(self) -> Task:
-    #     return Task(
-    #         config=self.tasks_config['find_instagram_information_task'],
-    #         tools=[query_instagram_db_tool],
-    #         output_pydantic=ContentCreatorInfo
-    #     )
-
-    # @task
-    # def follow_up_instagram_task(self) -> Task:
-    #     return Task(
-    #         config=self.tasks_config['follow_up_instagram_task'],
-    #         tools=[query_instagram_db_tool],
-    #         output_pydantic=ContentCreatorInfo
-    #     )
 
     @crew
     def crew(self) -> Crew:

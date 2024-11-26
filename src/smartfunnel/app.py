@@ -32,14 +32,14 @@ try:
 except Exception as e:
     logger.warning(f"Error initializing Streamlit configs: {e}")
 
-def validate_password(password: str) -> bool:
-    """Validate password against stored secret"""
-    try:
-        return password == st.secrets["Answer"]
-    except Exception as e:
-        logger.error(f"Error accessing secrets: {e}")
-        st.error("Error accessing secrets. Make sure secrets.toml is properly configured.")
-        return False
+    def validate_password(password: str) -> bool:
+        """Validate password against stored secret"""
+        try:
+            return password == st.secrets["Answer"]
+        except Exception as e:
+            logger.error(f"Error accessing secrets: {e}")
+            st.error("Error accessing secrets. Make sure secrets.toml is properly configured.")
+            return False
 
 def save_output_to_markdown(crew_output, filename: str = "creatorOutput.md") -> bool:
     """Save crew output to a markdown file"""

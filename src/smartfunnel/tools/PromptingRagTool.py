@@ -133,12 +133,22 @@ class ContentCreatorInfo(BaseModel):
         None, 
         description="The last name of the content creator"
     )
+    main_language: Optional[str] = Field(
+        None, 
+        description="The main language of the content creator"
+    )
+    full_name: Optional[str] = Field(
+        None, 
+        description="The full name of the content creator"
+    )
 
     @classmethod
     def default(cls) -> 'ContentCreatorInfo':
         return cls(
             first_name="",
             last_name="",
+            main_language="",
+            full_name="",
             life_events=[LifeEventObject.default()],
             business=BusinessObject.default(),
             values=[ValueObject.default()],
@@ -187,6 +197,8 @@ def _extract_content_creator_info(self, input_string: str) -> ContentCreatorInfo
         return ContentCreatorInfo(
             first_name=self._extract_field_value(cleaned_input, "first_name") or "",
             last_name=self._extract_field_value(cleaned_input, "last_name") or "",
+            main_language=self._extract_field_value(cleaned_input, "main_language") or "",
+            full_name=self._extract_field_value(cleaned_input, "full_name") or "",
             life_events=life_events_objects,
             business=business_object,
             values=values_objects,
@@ -205,11 +217,31 @@ class PromptingRagToolOutput(BaseModel):
     )
 
 class PromptingRagToolInput(BaseModel):
-    """Input for PromptingRagTool."""
+    """Input schema for PromptingRagTool with improved validation."""
     input_string: Union[str, Dict[str, Any], ContentCreatorInfo] = Field(
         ..., 
-        description="ContentCreatorInfo object, dictionary, or string representation"
+        description="ContentCreatorInfo object, dictionary, or string representation",
+        example={
+            "first_name": "John",
+            "last_name": "Doe",
+            "full_name": "John Doe",
+            "main_language": "English",
+            "life_events": [],
+            "business": {"name": "", "description": "", "genesis": ""},
+            "values": [],
+            "challenges": [],
+            "achievements": []
+        }
     )
+
+    class Config:
+        arbitrary_types_allowed = True
+# class PromptingRagToolInput(BaseModel):
+#     """Input for PromptingRagTool."""
+#     input_string: Union[str, Dict[str, Any], ContentCreatorInfo] = Field(
+#         ..., 
+#         description="ContentCreatorInfo object, dictionary, or string representation"
+#     )
 
 class PromptingRagTool(BaseTool):
     name: str = "Prompting RAG Tool"
@@ -379,6 +411,16 @@ class PromptingRagTool(BaseTool):
             except:
                 achievements_objects = [AchievementObject.default()]
 
+            try:
+                main_language = self._extract_field_value(cleaned_input, "main_language") or ""
+            except:
+                main_language = ""
+
+            try:
+                full_name = self._extract_field_value(cleaned_input, "full_name") or ""
+            except:
+                full_name = ""
+
             # Create ContentCreatorInfo with extracted or default values
             return ContentCreatorInfo(
                 first_name=self._extract_field_value(cleaned_input, "first_name") or "",
@@ -387,7 +429,9 @@ class PromptingRagTool(BaseTool):
                 business=business_object,
                 values=values_objects,
                 challenges=challenges_objects,
-                achievements=achievements_objects
+                achievements=achievements_objects,
+                main_language=main_language,
+                full_name=full_name
             )
 
         except Exception as e:
@@ -496,6 +540,8 @@ class PromptingRagTool(BaseTool):
             return ContentCreatorInfo(
                 first_name=self._extract_field_value(cleaned_input, "first_name") or "",
                 last_name=self._extract_field_value(cleaned_input, "last_name") or "",
+                main_language=self._extract_field_value(cleaned_input, "main_language") or "",
+                full_name=self._extract_field_value(cleaned_input, "full_name") or "",
                 **components
             )
 
@@ -504,38 +550,58 @@ class PromptingRagTool(BaseTool):
             return ContentCreatorInfo.default()
 
     def _process_input(self, input_data: Union[str, Dict[str, Any], ContentCreatorInfo]) -> ContentCreatorInfo:
-        """Process different input types into ContentCreatorInfo."""
+        """
+        Process different input types into ContentCreatorInfo.
+        Updated to handle new fields (full_name and main_language) and improved error handling.
+        """
         try:
+            # Case 1: Input is already a ContentCreatorInfo object
             if isinstance(input_data, ContentCreatorInfo):
                 return input_data
             
+            # Case 2: Input is a string - try to parse it
             if isinstance(input_data, str):
                 try:
+                    # Try to parse as JSON first
                     parsed_data = json.loads(input_data)
-                    if isinstance(parsed_data, dict) and 'input_string' in parsed_data:
-                        input_data = parsed_data['input_string']
-                        if isinstance(input_data, str):
-                            input_data = json.loads(input_data)
+                    if isinstance(parsed_data, dict):
+                        # Handle case where input is wrapped in input_string
+                        if 'input_string' in parsed_data:
+                            inner_data = parsed_data['input_string']
+                            if isinstance(inner_data, str):
+                                try:
+                                    input_data = json.loads(inner_data)
+                                except json.JSONDecodeError:
+                                    input_data = inner_data
+                            else:
+                                input_data = inner_data
+                        else:
+                            input_data = parsed_data
+                    else:
+                        return self._extract_content_creator_info(input_data)
                 except json.JSONDecodeError:
                     return self._extract_content_creator_info(input_data)
 
+            # Case 3: Input should now be a dictionary
             if not isinstance(input_data, dict):
                 raise ValueError(f"Expected dictionary, got {type(input_data)}")
 
-            # Extract name fields properly
-            full_name = input_data.get('name', '')
-            if isinstance(full_name, str) and full_name:
-                name_parts = full_name.split(None, 1)
-                first_name = name_parts[0] if name_parts else ''
-                last_name = name_parts[1] if len(name_parts) > 1 else ''
-            else:
-                first_name = input_data.get('first_name', '')
-                last_name = input_data.get('last_name', '')
+            # Extract name fields with proper handling of new full_name field
+            first_name = input_data.get('first_name', '')
+            last_name = input_data.get('last_name', '')
+            full_name = input_data.get('full_name', '')
+            main_language = input_data.get('main_language', '')
 
-            # Transform the input data without placeholders
+            # If full_name is not provided but we have first/last name, construct it
+            if not full_name and (first_name or last_name):
+                full_name = f"{first_name} {last_name}".strip()
+
+            # Transform the input data with comprehensive error handling
             transformed_data = {
                 'first_name': first_name,
                 'last_name': last_name,
+                'full_name': full_name,
+                'main_language': main_language,
                 'business': {
                     'name': input_data.get('business', {}).get('name', ''),
                     'description': input_data.get('business', {}).get('description', ''),
@@ -547,35 +613,120 @@ class PromptingRagTool(BaseTool):
                         'origin': value.get('origin', ''),
                         'impact_today': value.get('impact_today', '')
                     }
-                    for value in input_data.get('values', [])
+                    for value in input_data.get('values', []) or []
                 ],
                 'challenges': [
                     {
                         'description': challenge.get('description', ''),
                         'learnings': challenge.get('learnings', '')
                     }
-                    for challenge in input_data.get('challenges', [])
+                    for challenge in input_data.get('challenges', []) or []
                 ],
                 'achievements': [
                     {
                         'description': achievement.get('description', '')
                     }
-                    for achievement in input_data.get('achievements', [])
+                    for achievement in input_data.get('achievements', []) or []
                 ],
                 'life_events': [
                     {
                         'name': event.get('name', ''),
                         'description': event.get('description', '')
                     }
-                    for event in input_data.get('life_events', [])
+                    for event in input_data.get('life_events', []) or []
                 ]
             }
 
-            return ContentCreatorInfo(**transformed_data)
+            # Ensure lists are never None
+            for key in ['values', 'challenges', 'achievements', 'life_events']:
+                if not transformed_data[key]:
+                    transformed_data[key] = []
+
+            # Create ContentCreatorInfo object with proper validation
+            try:
+                return ContentCreatorInfo(**transformed_data)
+            except Exception as e:
+                print(f"Error creating ContentCreatorInfo object: {str(e)}")
+                return ContentCreatorInfo.default()
 
         except Exception as e:
             print(f"Error in _process_input: {str(e)}")
-            raise ValueError(f"Error processing input: {str(e)}")
+            return ContentCreatorInfo.default()
+
+    # def _process_input(self, input_data: Union[str, Dict[str, Any], ContentCreatorInfo]) -> ContentCreatorInfo:
+    #     """Process different input types into ContentCreatorInfo."""
+    #     try:
+    #         if isinstance(input_data, ContentCreatorInfo):
+    #             return input_data
+            
+    #         if isinstance(input_data, str):
+    #             try:
+    #                 parsed_data = json.loads(input_data)
+    #                 if isinstance(parsed_data, dict) and 'input_string' in parsed_data:
+    #                     input_data = parsed_data['input_string']
+    #                     if isinstance(input_data, str):
+    #                         input_data = json.loads(input_data)
+    #             except json.JSONDecodeError:
+    #                 return self._extract_content_creator_info(input_data)
+
+    #         if not isinstance(input_data, dict):
+    #             raise ValueError(f"Expected dictionary, got {type(input_data)}")
+
+    #         # Extract name fields properly
+    #         full_name = input_data.get('name', '')
+    #         if isinstance(full_name, str) and full_name:
+    #             name_parts = full_name.split(None, 1)
+    #             first_name = name_parts[0] if name_parts else ''
+    #             last_name = name_parts[1] if len(name_parts) > 1 else ''
+    #         else:
+    #             first_name = input_data.get('first_name', '')
+    #             last_name = input_data.get('last_name', '')
+
+    #         # Transform the input data without placeholders
+    #         transformed_data = {
+    #             'first_name': first_name,
+    #             'last_name': last_name,
+    #             'full_name': full_name,
+    #             'business': {
+    #                 'name': input_data.get('business', {}).get('name', ''),
+    #                 'description': input_data.get('business', {}).get('description', ''),
+    #                 'genesis': input_data.get('business', {}).get('genesis', '')
+    #             },
+    #             'values': [
+    #                 {
+    #                     'name': value.get('name', ''),
+    #                     'origin': value.get('origin', ''),
+    #                     'impact_today': value.get('impact_today', '')
+    #                 }
+    #                 for value in input_data.get('values', [])
+    #             ],
+    #             'challenges': [
+    #                 {
+    #                     'description': challenge.get('description', ''),
+    #                     'learnings': challenge.get('learnings', '')
+    #                 }
+    #                 for challenge in input_data.get('challenges', [])
+    #             ],
+    #             'achievements': [
+    #                 {
+    #                     'description': achievement.get('description', '')
+    #                 }
+    #                 for achievement in input_data.get('achievements', [])
+    #             ],
+    #             'life_events': [
+    #                 {
+    #                     'name': event.get('name', ''),
+    #                     'description': event.get('description', '')
+    #                 }
+    #                 for event in input_data.get('life_events', [])
+    #             ]
+    #         }
+
+    #         return ContentCreatorInfo(**transformed_data)
+
+    #     except Exception as e:
+    #         print(f"Error in _process_input: {str(e)}")
+    #         raise ValueError(f"Error processing input: {str(e)}")
 
     def _format_content_creator_info(self, info: ContentCreatorInfo) -> str:
         """Format ContentCreatorInfo into a readable string."""

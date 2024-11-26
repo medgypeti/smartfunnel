@@ -1,7 +1,7 @@
-from smartfunnel.crew_youtube import YoutubeCrew
+from crew_youtube_simple import YoutubeCrew
 
 def replay():
-    task_id = ""
+    task_id = "c0d373ad-e088-41c5-9356-bd37902ca6b1"
     # inputs = {"instagram_username": "clubvipfinance"}  # Add any inputs if needed
     try:
         YoutubeCrew().crew().replay(task_id=task_id)
@@ -10,21 +10,3 @@ def replay():
 
 if __name__ == "__main__":
     replay()
-
-#   def replay():
-#   """
-#   Replay the crew execution from a specific task.
-#   """
-#   task_id = '356844b9-990e-44fa-bb76-4eb0bfc82896'
-# #   inputs = {"topic": "CrewAI Training"}  # This is optional; you can pass in the inputs you want to replay; otherwise, it uses the previous kickoff's inputs.
-#   try:
-#       YourCrewName_Crew().crew().replay(task_id=task_id, inputs=inputs)
-
-#   except subprocess.CalledProcessError as e:
-#       raise Exception(f"An error occurred while replaying the crew: {e}")
-
-#   except Exception as e:
-#       raise Exception(f"An unexpected error occurred: {e}")
-
-# if __name__ == "__main__":
-#     replay()

@@ -16,7 +16,7 @@ YOUTUBE_API_KEY = st.secrets["YOUTUBE_API_KEY"]
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
 class FetchRelevantVideosFromYouTubeChannelInput(BaseModel):
-    youtube_channel_handle: str = Field(
+    youtube_handle: str = Field(
         ..., description="The YouTube channel handle (e.g., '@channelhandle')."
     )
 
@@ -46,16 +46,16 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
     
     def _run(
         self,
-        youtube_channel_handle: str,
+        youtube_handle: str,
     ) -> str:
         api_key = YOUTUBE_API_KEY
         if not api_key:
             return "YOUTUBE_API_KEY environment variable is not set"
 
         try:
-            channel_id = self.get_channel_id(youtube_channel_handle, api_key)
+            channel_id = self.get_channel_id(youtube_handle, api_key)
             if channel_id is None:
-                return f"No channel found for handle: {youtube_channel_handle}"
+                return f"No channel found for handle: {youtube_handle}"
                 
             all_videos = self.fetch_all_videos(channel_id, api_key)
             video_details = self.fetch_video_details(all_videos, api_key)
@@ -84,15 +84,16 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
                 )
 
             if not videos:
-                return f"No suitable videos found for channel: {youtube_channel_handle}"
+                return f"No suitable videos found for channel: {youtube_handle}"
 
             # Sort by popularity (view count) and take top 50
-            popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:50]
+            # popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:50]
+            popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:10]
             ranked_videos = self.rank_videos(popular_videos)
             top_videos = ranked_videos[:10]
-
+            # top_videos = ranked_videos[:2]
             # Create a summary string
-            summary = f"Successfully analyzed {len(videos)} videos from {youtube_channel_handle}.\n"
+            summary = f"Successfully analyzed {len(videos)} videos from {youtube_handle}.\n"
             summary += f"Top {len(top_videos)} most relevant videos:\n"
             
             for idx, video in enumerate(top_videos, 1):
@@ -103,7 +104,7 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
             return summary
 
         except Exception as e:
-            error_message = f"Error processing channel {youtube_channel_handle}: {str(e)}"
+            error_message = f"Error processing channel {youtube_handle}: {str(e)}"
             print(error_message)
             return error_message
 
@@ -155,12 +156,12 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
     #         print(f"Error processing channel {youtube_channel_handle}: {str(e)}")
     #         return None
 
-    def get_channel_id(self, youtube_channel_handle: str, api_key: str) -> Optional[str]:
+    def get_channel_id(self, youtube_handle: str, api_key: str) -> Optional[str]:
         url = "https://www.googleapis.com/youtube/v3/search"
         params = {
             "part": "snippet",
             "type": "channel",
-            "q": youtube_channel_handle,
+            "q": youtube_handle,
             "key": api_key,
         }
         try:
@@ -168,7 +169,7 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
             response.raise_for_status()
             items = response.json().get("items", [])
             if not items:
-                print(f"No channel found for handle {youtube_channel_handle}")
+                print(f"No channel found for handle {youtube_handle}")
                 return None
             return items[0]["id"]["channelId"]
         except requests.exceptions.RequestException as e:
@@ -196,6 +197,7 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
         page_token = None
         try:
             while len(all_video_ids) < 200:
+            # while len(all_video_ids) < 20:
                 if page_token:
                     params["pageToken"] = page_token
 
@@ -213,6 +215,7 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
                 time.sleep(1)
 
             return all_video_ids[:200]
+            # return all_video_ids[:20]
         except requests.exceptions.RequestException as e:
             print(f"Error in fetch_all_videos: {e}")
             print(f"Response content: {response.content}")
@@ -250,21 +253,27 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
             prompt = f"""
             Rate how likely this video is to cover the personal story of its creator. Respond with a single number from 0 to 10, where 0 means not at all likely and 10 means extremely likely.
 
+            A score of 1 means it's purely promotional or unrelated to personal stories.
+            A score of 10 means it's a deep, meaningful personal story or reflection.
+
             Title: {video.title}
             Description: {video.description}
 
             Rating (0-10):
+            Respond with ONLY a single number between 1 and 10, with no additional text, explanation, or newlines.
+            Example correct response: 7
             """
 
             try:
                 response = groq_client.chat.completions.create(
-                    model="llama-3.1-70b-versatile",
+                    # model="llama-3.1-70b-versatile",
+                    model="mixtral-8x7b-32768",
                     messages=[
                         {"role": "system", "content": "You are an AI that rates videos based on their relevance to the creator's personal story. Respond only with a number from 0 to 10."},
                         {"role": "user", "content": prompt}
                     ],
                     max_tokens=5,
-                    temperature=0.2
+                    temperature=0.1
                 )
 
                 score_text = response.choices[0].message.content.strip()

@@ -1,394 +1,343 @@
-
-from typing import Any, Type, List, Union
-from datetime import datetime
-from pydantic import BaseModel, Field
-from crewai_tools.tools.base_tool import BaseTool
-import instaloader
-import logging
-from dotenv import load_dotenv
-import os
-import time
-
-
-import tempfile
-import logging
-from embedchain import App
-from typing import Any, Type, List
-from datetime import datetime
-from pydantic import BaseModel, Field
-from crewai_tools.tools.base_tool import BaseTool
-import instaloader
-import os
-import requests
-import io
-from pydub import AudioSegment
-from deepgram import Deepgram
-from smartfunnel.tools.chroma_db_init import get_app_instance
-app_instance = get_app_instance()
-
-import streamlit as st
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-# Set up Deepgram
-os.environ["DEEPGRAM_API_KEY"] = st.secrets["DEEPGRAM_API_KEY"]
-# deepgram = Deepgram(DEEPGRAM_API_KEY)
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-class PostInfo(BaseModel):
-    """Instagram post information."""
-    post_id: str
-    caption: str
-    timestamp: datetime
-    likes: int
-    url: str
-    is_video: bool
-    video_url: str = ""
-
-    class Config:
-        arbitrary_types_allowed = True
-
-from typing import Any, Type, List
-from datetime import datetime
-from pydantic import BaseModel, Field
-from crewai_tools.tools.base_tool import BaseTool
-import instaloader
-import logging
-from dotenv import load_dotenv
-import os
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-from typing import Any, Type, List
-from datetime import datetime
-from pydantic import BaseModel, Field
-from crewai_tools.tools.base_tool import BaseTool
-import instaloader
-import logging
-import os
-import requests
-import io
-from pydub import AudioSegment
-from embedchain import App
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-class FetchToAddInstagramAudioInput(BaseModel):
-    """Input for FetchToAddInstagramAudio."""
-    instagram_username: str = Field(..., description="The Instagram username to fetch posts from")
-
-class FetchToAddInstagramAudioOutput(BaseModel):
-    """Output containing results of fetch and audio processing."""
-    processed_videos: List[str] = Field(default_factory=list, description="List of successfully processed video URLs")
-    success: bool = Field(..., description="Whether the operation was successful")
-    error_message: str = Field(default="", description="Error message if any operations failed")
-    total_posts_found: int = Field(default=0, description="Total number of posts found")
-    total_videos_processed: int = Field(default=0, description="Total number of videos processed")
-
-from contextlib import contextmanager
-
-@contextmanager
-def temporary_file_manager(suffix='.wav'):
-    """Context manager for handling temporary files."""
-    temp_dir = tempfile.mkdtemp()
-    temp_path = os.path.join(temp_dir, f'temp{suffix}')
-    try:
-        yield temp_path
-    finally:
-        # Clean up the file
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-        # Clean up the directory
-        if os.path.exists(temp_dir):
-            os.rmdir(temp_dir)
-
-class FetchToAddInstagramAudioTool(BaseTool):
-    """Tool that fetches Instagram posts and processes their audio for the vector database."""
-    name: str = "Fetch and Process Instagram Audio"
-    description: str = "Fetches Instagram posts and adds video audio to the vector database"
-    args_schema: Type[BaseModel] = FetchToAddInstagramAudioInput
-    insta_loader: Any = Field(default=None, exclude=True)
-    app: Any = Field(default=None, exclude=True)
-    is_initialized: bool = Field(default=False, exclude=True)
-    session_file: str = Field(default="", exclude=True)
-
-    def __init__(self, app: App, **data):
-        super().__init__(**data)
-        self.app = app
-        self.session_file = os.path.join(tempfile.gettempdir(), "instagram_session")
-        self.is_initialized = False
-
-    def initialize_for_new_creator(self):
-        """Reset the vector database before starting analysis for a new creator."""
-        logger.info("Initializing vector database for new creator")
-        if self.app is not None:
-            self.app.reset()
-            logger.info("Vector database reset successfully")
-        else:
-            logger.error("No app instance available for reset")
-        self.is_initialized = True
-
-    def _get_instaloader_instance(self):
-        """Get or create a shared Instaloader instance with session management."""
-        if not self.insta_loader:
-            self.insta_loader = instaloader.Instaloader()
-            try:
-                username = os.getenv("INSTAGRAM_USERNAME", "the_smart_funnel")
-                password = os.getenv("INSTAGRAM_PASSWORD", "Firescan2024+")
-
-                # Try to load existing session
-                if os.path.exists(self.session_file):
-                    try:
-                        self.insta_loader.load_session_from_file(username, self.session_file)
-                        logger.info("Successfully loaded existing Instagram session")
-                        return self.insta_loader
-                    except Exception as e:
-                        logger.warning(f"Failed to load existing session: {str(e)}")
-                
-                # Perform fresh login
-                self.insta_loader.login(username, password)
-                # Save session for future use
-                self.insta_loader.save_session_to_file(self.session_file)
-                logger.info("Successfully created new Instagram session")
-                
-            except Exception as e:
-                logger.error(f"Failed to login to Instagram: {str(e)}")
-                raise
-
-        return self.insta_loader
-
-    def _retry_operation(self, operation, max_retries=3, delay=5):
-        """Generic retry mechanism for Instagram operations."""
-        last_error = None
-        for attempt in range(max_retries):
-            try:
-                return operation()
-            except Exception as e:
-                last_error = e
-                if attempt + 1 < max_retries:
-                    logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-                    time.sleep(delay * (attempt + 1))
-                    
-                    if "login" in str(e).lower() or "429" in str(e):
-                        self.insta_loader = None
-                        self._get_instaloader_instance()
-                        
-        raise last_error
-
-    def _process_video(self, video_url: str, post_metadata: dict) -> bool:
-        with temporary_file_manager() as temp_audio_path:
-            try:
-                # Download video
-                response = requests.get(video_url, timeout=30)
-                if response.status_code != 200:
-                    raise Exception(f"Failed to download video: Status code {response.status_code}")
-                
-                # Process video data
-                video_buffer = io.BytesIO(response.content)
-                audio = AudioSegment.from_file(video_buffer, format="mp4")
-                
-                # Export as WAV
-                audio_buffer = io.BytesIO()
-                audio.export(audio_buffer, format="wav")
-                audio_buffer.seek(0)
-                
-                # Write to temporary file
-                with open(temp_audio_path, 'wb') as f:
-                    f.write(audio_buffer.getvalue())
-                
-                # Add to embedchain
-                self.app.add(
-                    temp_audio_path,
-                    data_type="audio",
-                    metadata=post_metadata
-                )
-                
-                logger.info(f"Successfully processed video: {video_url}")
-                return True
-                
-            except Exception as e:
-                logger.error(f"Error processing video {video_url}: {str(e)}")
-                return False
-    
-    def _run(self, instagram_username: str) -> FetchToAddInstagramAudioOutput:
-        # Reset the database if not initialized
-        if not self.is_initialized:
-            self.initialize_for_new_creator()
-            
-        processed_videos = []
-        errors = []
-        total_posts = 0
-        
-        try:
-            logger.info(f"Fetching posts for user: {instagram_username}")
-            
-            def get_profile():
-                loader = self._get_instaloader_instance()
-                return instaloader.Profile.from_username(loader.context, instagram_username)
-            
-            # Get profile with retry logic
-            profile = self._retry_operation(get_profile)
-            post_count = 0
-            
-            for post in profile.get_posts():
-                total_posts += 1
-                
-                try:
-                    if post.is_video and post.video_url:
-                        post_metadata = {
-                            "source": f"https://www.instagram.com/p/{post.shortcode}/",
-                            "caption": post.caption if post.caption else "",
-                            "timestamp": post.date_utc.isoformat(),
-                            "likes": post.likes,
-                            "post_id": post.shortcode
-                        }
-                        
-                        if self._process_video(post.video_url, post_metadata):
-                            processed_videos.append(post.video_url)
-                    
-                    post_count += 1
-                    if post_count >= 4:
-                        break
-                        
-                except Exception as post_error:
-                    error_msg = f"Error processing post {post.shortcode}: {str(post_error)}"
-                    logger.error(error_msg)
-                    errors.append(error_msg)
-                    continue
-
-            success = len(processed_videos) > 0
-            error_message = "; ".join(errors) if errors else ""
-            
-            logger.info(f"Processed {len(processed_videos)} videos out of {total_posts} total posts")
-            
-            return FetchToAddInstagramAudioOutput(
-                processed_videos=processed_videos,
-                success=success,
-                error_message=error_message,
-                total_posts_found=total_posts,
-                total_videos_processed=len(processed_videos)
-            )
-
-        except Exception as e:
-            error_message = f"Error in fetch and process operation: {str(e)}"
-            logger.error(error_message)
-            return FetchToAddInstagramAudioOutput(
-                processed_videos=[],
-                success=False,
-                error_message=error_message,
-                total_posts_found=total_posts,
-                total_videos_processed=0
-            )
-
-    def _handle_error(self, error: Exception) -> str:
-        """Handle errors that occur during tool execution."""
-        error_message = str(error)
-        if "login" in error_message.lower():
-            return "Failed to authenticate with Instagram. Please check your credentials."
-        elif "not found" in error_message.lower():
-            return f"Instagram profile not found. Please check the username."
-        elif "rate limit" in error_message.lower():
-            return "Instagram rate limit reached. Please try again later."
-        else:
-            return f"An error occurred: {error_message}"
-
-
-from typing import List, Type, Optional, Union, Dict
-from datetime import datetime, timedelta
-import tempfile
-import random
-import time
-import logging
-from pathlib import Path
-import socket
-import instaloader
-import requests
-from moviepy.editor import VideoFileClip
-from pydantic.v1 import BaseModel, Field, PrivateAttr
-from crewai_tools.tools.base_tool import BaseTool
-from embedchain import App
-# from crewai_tools.tools.base_tool import BaseTool
-# from pydantic.v1 import BaseModel, Field, PrivateAttr
-# from typing import Type, Union
-# from embedchain import App
-# import logging
-
-class QueryInstagramDBInput(BaseModel):
-    """Input for QueryInstagramDB."""
-    query: str = Field(
-        ..., 
-        description="The query to search the instagram content added to the database",
-        example="How do the author's values impact their work?"
-    )
-
-class QueryInstagramDBOutput(BaseModel):
-    """Output for QueryInstagramDB."""
-    response: str = Field(..., description="The response from the query")
-    error_message: str = Field(default="", description="Error message if the operation failed")
-    success: bool = Field(..., description="Whether the operation was successful")
-
-class QueryInstagramDBTool(BaseTool):
-    name: str = "Query Instagram DB"
-    description: str = """Queries the Instagram content database with provided input query.
-    Example: 'How do the author's values impact their work?'"""
-    args_schema: Type[BaseModel] = QueryInstagramDBInput
-    
-    _app: Optional[App] = PrivateAttr(default=None)
-
-    def __init__(self, app: App):
-        super().__init__()
-        self._app = app
-
-    def _run(self, query: Union[str, Dict, QueryInstagramDBInput]) -> QueryInstagramDBOutput:
-        try:
-            # Convert string input to QueryInstagramDBInput
-            if isinstance(query, str):
-                query = QueryInstagramDBInput(query=query)
-            # Convert dict input to QueryInstagramDBInput
-            elif isinstance(query, dict):
-                query = QueryInstagramDBInput(**query)
-            # At this point, query should be QueryInstagramDBInput
-            if not isinstance(query, QueryInstagramDBInput):
-                raise ValueError("Invalid query format")
-
-            query_str = query.query
-            if not query_str.strip():
-                raise ValueError("Query string cannot be empty")
-
-            # Rest of your code remains the same
-            enhanced_query = f"""Please analyze the following query about the Instagram content: {query_str}
-            Focus on providing specific examples and quotes from the posts."""
-
-            response = self._app.query(enhanced_query)
-            answer = response[0] if isinstance(response, tuple) else response
-
-            if not answer or (isinstance(answer, str) and answer.strip() == ""):
-                return QueryInstagramDBOutput(
-                    response="No relevant content found in the processed posts.",
-                    success=False,
-                    error_message="No content found"
-                )
-
-            formatted_response = f"""Answer: {answer}\n\nNote: This response is based on the processed Instagram content."""
-            return QueryInstagramDBOutput(response=formatted_response, success=True)
-
-        except Exception as e:
-            logging.error(f"Error in QueryInstagramDBTool: {str(e)}")
-            return QueryInstagramDBOutput(
-                response="",
-                success=False,
-                error_message=str(e)
-            )
-
-
-from smartfunnel.tools.chroma_db_init import get_app_instance
-app_instance = get_app_instance()
-fetch_tool = FetchToAddInstagramAudioTool(app=app_instance)
-fetch_tool.run(instagram_username="tonyjazz")
-query_tool = QueryInstagramDBTool(app=app_instance)
-# query_tool.run(query="What are the author's key achievements and successes?")
-print(query_tool.run(query="What are the author's key achievements and successes?"))
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "ModuleNotFoundError",
+     "evalue": "No module named 'instaloader'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mModuleNotFoundError\u001b[0m                       Traceback (most recent call last)",
+      "Cell \u001b[0;32mIn[1], line 5\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[38;5;28;01mfrom\u001b[39;00m \u001b[38;5;21;01mpydantic\u001b[39;00m \u001b[38;5;28;01mimport\u001b[39;00m BaseModel, Field\n\u001b[1;32m      4\u001b[0m \u001b[38;5;28;01mfrom\u001b[39;00m \u001b[38;5;21;01mcrewai_tools\u001b[39;00m\u001b[38;5;21;01m.\u001b[39;00m\u001b[38;5;21;01mtools\u001b[39;00m\u001b[38;5;21;01m.\u001b[39;00m\u001b[38;5;21;01mbase_tool\u001b[39;00m \u001b[38;5;28;01mimport\u001b[39;00m BaseTool\n\u001b[0;32m----> 5\u001b[0m \u001b[38;5;28;01mimport\u001b[39;00m \u001b[38;5;21;01minstaloader\u001b[39;00m\n\u001b[1;32m      6\u001b[0m \u001b[38;5;28;01mimport\u001b[39;00m \u001b[38;5;21;01mlogging\u001b[39;00m\n\u001b[1;32m      7\u001b[0m \u001b[38;5;28;01mfrom\u001b[39;00m \u001b[38;5;21;01mdotenv\u001b[39;00m \u001b[38;5;28;01mimport\u001b[39;00m load_dotenv\n",
+      "\u001b[0;31mModuleNotFoundError\u001b[0m: No module named 'instaloader'"
+     ]
+    }
+   ],
+   "source": [
+    "\n",
+    "from typing import Any, Type, List, Union\n",
+    "from datetime import datetime\n",
+    "from pydantic import BaseModel, Field\n",
+    "from crewai_tools.tools.base_tool import BaseTool\n",
+    "import instaloader\n",
+    "import logging\n",
+    "from dotenv import load_dotenv\n",
+    "import os\n",
+    "import time\n",
+    "\n",
+    "\n",
+    "import tempfile\n",
+    "import logging\n",
+    "from embedchain import App\n",
+    "from typing import Any, Type, List\n",
+    "from datetime import datetime\n",
+    "from pydantic import BaseModel, Field\n",
+    "from crewai_tools.tools.base_tool import BaseTool\n",
+    "import instaloader\n",
+    "import os\n",
+    "import requests\n",
+    "import io\n",
+    "from pydub import AudioSegment\n",
+    "from deepgram import Deepgram\n",
+    "from smartfunnel.tools.chroma_db_init import get_app_instance\n",
+    "app_instance = get_app_instance()\n",
+    "\n",
+    "import streamlit as st\n",
+    "OPENAI_API_KEY = st.secrets[\"OPENAI_API_KEY\"]\n",
+    "# Set up Deepgram\n",
+    "os.environ[\"DEEPGRAM_API_KEY\"] = st.secrets[\"DEEPGRAM_API_KEY\"]\n",
+    "# deepgram = Deepgram(DEEPGRAM_API_KEY)\n",
+    "\n",
+    "# Set up logging\n",
+    "logging.basicConfig(level=logging.INFO)\n",
+    "logger = logging.getLogger(__name__)\n",
+    "\n",
+    "class PostInfo(BaseModel):\n",
+    "    \"\"\"Instagram post information.\"\"\"\n",
+    "    post_id: str\n",
+    "    caption: str\n",
+    "    timestamp: datetime\n",
+    "    likes: int\n",
+    "    url: str\n",
+    "    is_video: bool\n",
+    "    video_url: str = \"\"\n",
+    "\n",
+    "    class Config:\n",
+    "        arbitrary_types_allowed = True\n",
+    "\n",
+    "from typing import Any, Type, List\n",
+    "from datetime import datetime\n",
+    "from pydantic import BaseModel, Field\n",
+    "from crewai_tools.tools.base_tool import BaseTool\n",
+    "import instaloader\n",
+    "import logging\n",
+    "from dotenv import load_dotenv\n",
+    "import os\n",
+    "\n",
+    "# Set up logging\n",
+    "logging.basicConfig(level=logging.INFO)\n",
+    "logger = logging.getLogger(__name__)\n",
+    "\n",
+    "from typing import Any, Type, List\n",
+    "from datetime import datetime\n",
+    "from pydantic import BaseModel, Field\n",
+    "from crewai_tools.tools.base_tool import BaseTool\n",
+    "import instaloader\n",
+    "import logging\n",
+    "import os\n",
+    "import requests\n",
+    "import io\n",
+    "from pydub import AudioSegment\n",
+    "from embedchain import App\n",
+    "\n",
+    "logging.basicConfig(level=logging.INFO)\n",
+    "logger = logging.getLogger(__name__)\n",
+    "\n",
+    "class FetchToAddInstagramAudioInput(BaseModel):\n",
+    "    \"\"\"Input for FetchToAddInstagramAudio.\"\"\"\n",
+    "    instagram_username: str = Field(..., description=\"The Instagram username to fetch posts from\")\n",
+    "\n",
+    "class FetchToAddInstagramAudioOutput(BaseModel):\n",
+    "    \"\"\"Output containing results of fetch and audio processing.\"\"\"\n",
+    "    processed_videos: List[str] = Field(default_factory=list, description=\"List of successfully processed video URLs\")\n",
+    "    success: bool = Field(..., description=\"Whether the operation was successful\")\n",
+    "    error_message: str = Field(default=\"\", description=\"Error message if any operations failed\")\n",
+    "    total_posts_found: int = Field(default=0, description=\"Total number of posts found\")\n",
+    "    total_videos_processed: int = Field(default=0, description=\"Total number of videos processed\")\n",
+    "\n",
+    "from contextlib import contextmanager\n",
+    "\n",
+    "@contextmanager\n",
+    "def temporary_file_manager(suffix='.wav'):\n",
+    "    \"\"\"Context manager for handling temporary files.\"\"\"\n",
+    "    temp_dir = tempfile.mkdtemp()\n",
+    "    temp_path = os.path.join(temp_dir, f'temp{suffix}')\n",
+    "    try:\n",
+    "        yield temp_path\n",
+    "    finally:\n",
+    "        # Clean up the file\n",
+    "        if os.path.exists(temp_path):\n",
+    "            os.remove(temp_path)\n",
+    "        # Clean up the directory\n",
+    "        if os.path.exists(temp_dir):\n",
+    "            os.rmdir(temp_dir)\n",
+    "\n",
+    "class FetchToAddInstagramAudioTool(BaseTool):\n",
+    "    \"\"\"Tool that fetches Instagram posts and processes their audio for the vector database.\"\"\"\n",
+    "    name: str = \"Fetch and Process Instagram Audio\"\n",
+    "    description: str = \"Fetches Instagram posts and adds video audio to the vector database\"\n",
+    "    args_schema: Type[BaseModel] = FetchToAddInstagramAudioInput\n",
+    "    insta_loader: Any = Field(default=None, exclude=True)\n",
+    "    app: Any = Field(default=None, exclude=True)\n",
+    "    is_initialized: bool = Field(default=False, exclude=True)\n",
+    "    session_file: str = Field(default=\"\", exclude=True)\n",
+    "\n",
+    "    def __init__(self, app: App, **data):\n",
+    "        super().__init__(**data)\n",
+    "        self.app = app\n",
+    "        self.session_file = os.path.join(tempfile.gettempdir(), \"instagram_session\")\n",
+    "        self.is_initialized = False\n",
+    "\n",
+    "    def initialize_for_new_creator(self):\n",
+    "        \"\"\"Reset the vector database before starting analysis for a new creator.\"\"\"\n",
+    "        logger.info(\"Initializing vector database for new creator\")\n",
+    "        if self.app is not None:\n",
+    "            self.app.reset()\n",
+    "            logger.info(\"Vector database reset successfully\")\n",
+    "        else:\n",
+    "            logger.error(\"No app instance available for reset\")\n",
+    "        self.is_initialized = True\n",
+    "\n",
+    "    def _get_instaloader_instance(self):\n",
+    "        \"\"\"Get or create a shared Instaloader instance with session management.\"\"\"\n",
+    "        if not self.insta_loader:\n",
+    "            self.insta_loader = instaloader.Instaloader()\n",
+    "            try:\n",
+    "                username = os.getenv(\"INSTAGRAM_USERNAME\", \"the_smart_funnel\")\n",
+    "                password = os.getenv(\"INSTAGRAM_PASSWORD\", \"Firescan2024+\")\n",
+    "\n",
+    "                # Try to load existing session\n",
+    "                if os.path.exists(self.session_file):\n",
+    "                    try:\n",
+    "                        self.insta_loader.load_session_from_file(username, self.session_file)\n",
+    "                        logger.info(\"Successfully loaded existing Instagram session\")\n",
+    "                        return self.insta_loader\n",
+    "                    except Exception as e:\n",
+    "                        logger.warning(f\"Failed to load existing session: {str(e)}\")\n",
+    "                \n",
+    "                # Perform fresh login\n",
+    "                self.insta_loader.login(username, password)\n",
+    "                # Save session for future use\n",
+    "                self.insta_loader.save_session_to_file(self.session_file)\n",
+    "                logger.info(\"Successfully created new Instagram session\")\n",
+    "                \n",
+    "            except Exception as e:\n",
+    "                logger.error(f\"Failed to login to Instagram: {str(e)}\")\n",
+    "                raise\n",
+    "\n",
+    "        return self.insta_loader\n",
+    "\n",
+    "    def _retry_operation(self, operation, max_retries=3, delay=5):\n",
+    "        \"\"\"Generic retry mechanism for Instagram operations.\"\"\"\n",
+    "        last_error = None\n",
+    "        for attempt in range(max_retries):\n",
+    "            try:\n",
+    "                return operation()\n",
+    "            except Exception as e:\n",
+    "                last_error = e\n",
+    "                if attempt + 1 < max_retries:\n",
+    "                    logger.warning(f\"Attempt {attempt + 1} failed: {str(e)}\")\n",
+    "                    time.sleep(delay * (attempt + 1))\n",
+    "                    \n",
+    "                    if \"login\" in str(e).lower() or \"429\" in str(e):\n",
+    "                        self.insta_loader = None\n",
+    "                        self._get_instaloader_instance()\n",
+    "                        \n",
+    "        raise last_error\n",
+    "\n",
+    "    def _process_video(self, video_url: str, post_metadata: dict) -> bool:\n",
+    "        with temporary_file_manager() as temp_audio_path:\n",
+    "            try:\n",
+    "                # Download video\n",
+    "                response = requests.get(video_url, timeout=30)\n",
+    "                if response.status_code != 200:\n",
+    "                    raise Exception(f\"Failed to download video: Status code {response.status_code}\")\n",
+    "                \n",
+    "                # Process video data\n",
+    "                video_buffer = io.BytesIO(response.content)\n",
+    "                audio = AudioSegment.from_file(video_buffer, format=\"mp4\")\n",
+    "                \n",
+    "                # Export as WAV\n",
+    "                audio_buffer = io.BytesIO()\n",
+    "                audio.export(audio_buffer, format=\"wav\")\n",
+    "                audio_buffer.seek(0)\n",
+    "                \n",
+    "                # Write to temporary file\n",
+    "                with open(temp_audio_path, 'wb') as f:\n",
+    "                    f.write(audio_buffer.getvalue())\n",
+    "                \n",
+    "                # Add to embedchain\n",
+    "                self.app.add(\n",
+    "                    temp_audio_path,\n",
+    "                    data_type=\"audio\",\n",
+    "                    metadata=post_metadata\n",
+    "                )\n",
+    "                \n",
+    "                logger.info(f\"Successfully processed video: {video_url}\")\n",
+    "                return True\n",
+    "                \n",
+    "            except Exception as e:\n",
+    "                logger.error(f\"Error processing video {video_url}: {str(e)}\")\n",
+    "                return False\n",
+    "    \n",
+    "    def _run(self, instagram_username: str) -> FetchToAddInstagramAudioOutput:\n",
+    "        # Reset the database if not initialized\n",
+    "        if not self.is_initialized:\n",
+    "            self.initialize_for_new_creator()\n",
+    "            \n",
+    "        processed_videos = []\n",
+    "        errors = []\n",
+    "        total_posts = 0\n",
+    "        \n",
+    "        try:\n",
+    "            logger.info(f\"Fetching posts for user: {instagram_username}\")\n",
+    "            \n",
+    "            def get_profile():\n",
+    "                loader = self._get_instaloader_instance()\n",
+    "                return instaloader.Profile.from_username(loader.context, instagram_username)\n",
+    "            \n",
+    "            # Get profile with retry logic\n",
+    "            profile = self._retry_operation(get_profile)\n",
+    "            post_count = 0\n",
+    "            \n",
+    "            for post in profile.get_posts():\n",
+    "                total_posts += 1\n",
+    "                \n",
+    "                try:\n",
+    "                    if post.is_video and post.video_url:\n",
+    "                        post_metadata = {\n",
+    "                            \"source\": f\"https://www.instagram.com/p/{post.shortcode}/\",\n",
+    "                            \"caption\": post.caption if post.caption else \"\",\n",
+    "                            \"timestamp\": post.date_utc.isoformat(),\n",
+    "                            \"likes\": post.likes,\n",
+    "                            \"post_id\": post.shortcode\n",
+    "                        }\n",
+    "                        \n",
+    "                        if self._process_video(post.video_url, post_metadata):\n",
+    "                            processed_videos.append(post.video_url)\n",
+    "                    \n",
+    "                    post_count += 1\n",
+    "                    if post_count >= 4:\n",
+    "                        break\n",
+    "                        \n",
+    "                except Exception as post_error:\n",
+    "                    error_msg = f\"Error processing post {post.shortcode}: {str(post_error)}\"\n",
+    "                    logger.error(error_msg)\n",
+    "                    errors.append(error_msg)\n",
+    "                    continue\n",
+    "\n",
+    "            success = len(processed_videos) > 0\n",
+    "            error_message = \"; \".join(errors) if errors else \"\"\n",
+    "            \n",
+    "            logger.info(f\"Processed {len(processed_videos)} videos out of {total_posts} total posts\")\n",
+    "            \n",
+    "            return FetchToAddInstagramAudioOutput(\n",
+    "                processed_videos=processed_videos,\n",
+    "                success=success,\n",
+    "                error_message=error_message,\n",
+    "                total_posts_found=total_posts,\n",
+    "                total_videos_processed=len(processed_videos)\n",
+    "            )\n",
+    "\n",
+    "        except Exception as e:\n",
+    "            error_message = f\"Error in fetch and process operation: {str(e)}\"\n",
+    "            logger.error(error_message)\n",
+    "            return FetchToAddInstagramAudioOutput(\n",
+    "                processed_videos=[],\n",
+    "                success=False,\n",
+    "                error_message=error_message,\n",
+    "                total_posts_found=total_posts,\n",
+    "                total_videos_processed=0\n",
+    "            )\n",
+    "\n",
+    "    def _handle_error(self, error: Exception) -> str:\n",
+    "        \"\"\"Handle errors that occur during tool execution.\"\"\"\n",
+    "        error_message = str(error)\n",
+    "        if \"login\" in error_message.lower():\n",
+    "            return \"Failed to authenticate with Instagram. Please check your credentials.\"\n",
+    "        elif \"not found\" in error_message.lower():\n",
+    "            return f\"Instagram profile not found. Please check the username.\"\n",
+    "        elif \"rate limit\" in error_message.lower():\n",
+    "            return \"Instagram rate limit reached. Please try again later.\"\n",
+    "        else:\n",
+    "            return f\"An error occurred: {error_message}\"\n",
+    "\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "crewai-env",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.8"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
