@@ -436,18 +436,19 @@ def merge_and_validate_content(crew_result: Dict[str, Any], instagram_info: Dict
 
 def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str], full_name: Optional[str], main_language: Optional[str]) -> Dict[str, Any]:
     """
-    Run analysis with improved error handling and proper CrewOutput processing.
-    This function now ensures the RagCrew runs and its results are captured.
+    Run analysis that captures both the consolidated creator info and the RAG text analysis.
+    The function processes YouTube and Instagram data first, consolidates it, then runs the RAG analysis
+    to provide additional insights in text form.
     """
     try:
-        # Initialize our results container with all potential outputs
+        # Initialize our results container to store both structured and text analysis
         results = {
-            'youtube_raw': None,
-            'instagram_raw': None,
-            'rag_raw': None,
-            'merged_content': None,
-            'consolidated_info': None,
-            'final_analysis': None  # This will store the RAG analysis results
+            'consolidated_info': None,  # Will store the merged YouTube/Instagram structured data
+            'text_analysis': None,      # Will store the RAG crew's text analysis
+            'raw_data': {              # Store raw data for reference
+                'youtube': None,
+                'instagram': None
+            }
         }
 
         # Initialize result variables
@@ -470,7 +471,7 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str],
                     
                     youtube_crew = YoutubeCrew()
                     youtube_result = youtube_crew.crew().kickoff(inputs=youtube_inputs)
-                    results['youtube_raw'] = youtube_result
+                    results['raw_data']['youtube'] = youtube_result
                     
                     if youtube_result and hasattr(youtube_result, 'pydantic'):
                         youtube_json = youtube_result.pydantic.model_dump()
@@ -496,7 +497,7 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str],
                     
                     instagram_crew = InstagramCrew()
                     instagram_result = instagram_crew.crew().kickoff(inputs=instagram_inputs)
-                    results['instagram_raw'] = instagram_result
+                    results['raw_data']['instagram'] = instagram_result
                     
                     if instagram_result and hasattr(instagram_result, 'pydantic'):
                         instagram_json = instagram_result.pydantic.model_dump()
@@ -509,7 +510,8 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str],
         # Merge results if we have any data
         if not youtube_json and not instagram_json:
             st.warning("No data was collected from either YouTube or Instagram analysis")
-            return ContentCreatorInfo.create_empty()
+            results['consolidated_info'] = ContentCreatorInfo.create_empty()
+            return results
             
         # Merging Results Section
         with st.container():
@@ -519,21 +521,14 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str],
             try:
                 # Merge available data
                 merged_model = merge_and_validate_content(youtube_json, instagram_json)
-                
-                # Add the original input information
                 merged_dict = merged_model.model_dump()
                 merged_dict.update({
                     "full_name": full_name,
                     "main_language": main_language
                 })
                 
-                # Store merged content
-                results['merged_content'] = merged_dict
-                
-                # Create consolidated ContentCreatorInfo
-                consolidated_info = ContentCreatorInfo(**merged_dict)
-                results['consolidated_info'] = consolidated_info
-                
+                # Store consolidated info
+                results['consolidated_info'] = ContentCreatorInfo(**merged_dict)
                 merge_status.text("✓ Merge complete!")
                 
                 # Prepare input for RAG analysis
@@ -543,27 +538,29 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str],
                 
                 # RAG Analysis Section
                 with st.container():
-                    st.subheader("RAG Analysis")
+                    st.subheader("Detailed Analysis")
                     rag_progress = st.progress(0)
                     rag_status = st.empty()
                     
                     try:
-                        rag_status.text("Running RAG analysis...")
+                        rag_status.text("Generating detailed analysis...")
                         rag_progress.progress(50)
                         
+                        # Run RAG analysis
                         rag_crew = RagCrew()
                         rag_result = rag_crew.crew().kickoff(inputs=rag_input)
-                        results['rag_raw'] = rag_result
                         
-                        if rag_result and hasattr(rag_result, 'pydantic'):
-                            # Store the final analysis
-                            results['final_analysis'] = rag_result.pydantic.model_dump()
+                        # Store the text analysis directly from the raw output
+                        if rag_result and hasattr(rag_result, 'raw'):
+                            results['text_analysis'] = rag_result.raw
                             rag_progress.progress(100)
-                            rag_status.text("✓ RAG analysis complete!")
+                            rag_status.text("✓ Detailed analysis complete!")
                         else:
-                            rag_status.warning("RAG analysis completed but returned no results")
+                            rag_status.warning("Analysis completed but produced no detailed insights")
+                            
                     except Exception as e:
-                        rag_status.error(f"RAG analysis error: {str(e)}")
+                        rag_status.error(f"Detailed analysis error: {str(e)}")
+                        logger.error(f"RAG analysis error details: {str(e)}", exc_info=True)
                 
                 return results
                 
@@ -577,72 +574,59 @@ def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str],
 
 def display_analysis_results(results: Dict[str, Any]) -> None:
     """
-    Display analysis results including RAG output with proper error handling and formatting.
+    Display both the consolidated structured data and the detailed text analysis.
+    This function presents results in a clear, organized manner with proper sections
+    for different types of information.
     """
     if not results:
         st.error("No results to display")
         return
     
-    # Display final RAG analysis results first (if available)
-    st.subheader("Final Analysis Results")
-    if results.get('final_analysis'):
-        with st.expander("View Final Analysis", expanded=True):
-            st.json(results['final_analysis'])
+    # Display the detailed text analysis first
+    if results.get('text_analysis'):
+        st.subheader("Detailed Analysis")
+        with st.expander("View Detailed Analysis", expanded=True):
+            st.write(results['text_analysis'])
     
-    # Display consolidated results
-    st.subheader("Consolidated Data")
+    # Display consolidated structured data
+    st.subheader("Consolidated Creator Information")
     if results.get('consolidated_info'):
-        with st.expander("View Consolidated Results", expanded=True):
+        with st.expander("View Structured Data", expanded=True):
             consolidated_dict = results['consolidated_info'].model_dump()
             st.json(consolidated_dict)
     
-    # Display raw outputs in a separate section
-    st.subheader("Raw Analysis Data")
+    # Display raw data in a collapsed section
+    st.subheader("Raw Data")
     with st.expander("View Raw Data", expanded=False):
-        # YouTube raw data
-        st.write("### YouTube Analysis")
-        if results.get('youtube_raw') and hasattr(results['youtube_raw'], 'pydantic'):
-            try:
-                youtube_data = results['youtube_raw'].pydantic.model_dump()
-                st.json(youtube_data)
-            except Exception:
-                st.write("No YouTube data available")
+        raw_data = results.get('raw_data', {})
+        
+        st.write("### YouTube Data")
+        youtube_raw = raw_data.get('youtube')
+        if youtube_raw and hasattr(youtube_raw, 'pydantic'):
+            st.json(youtube_raw.pydantic.model_dump())
         else:
             st.write("No YouTube data available")
-            
-        # Instagram raw data
-        st.write("### Instagram Analysis")
-        if results.get('instagram_raw') and hasattr(results['instagram_raw'], 'pydantic'):
-            try:
-                instagram_data = results['instagram_raw'].pydantic.model_dump()
-                st.json(instagram_data)
-            except Exception:
-                st.write("No Instagram data available")
+        
+        st.write("### Instagram Data")
+        instagram_raw = raw_data.get('instagram')
+        if instagram_raw and hasattr(instagram_raw, 'pydantic'):
+            st.json(instagram_raw.pydantic.model_dump())
         else:
             st.write("No Instagram data available")
-            
-        # RAG raw data
-        st.write("### RAG Analysis")
-        if results.get('rag_raw') and hasattr(results['rag_raw'], 'pydantic'):
-            try:
-                rag_data = results['rag_raw'].pydantic.model_dump()
-                st.json(rag_data)
-            except Exception:
-                st.write("No RAG analysis data available")
-        else:
-            st.write("No RAG analysis data available")
 # def run_analysis(youtube_handle: Optional[str], instagram_handle: Optional[str], full_name: Optional[str], main_language: Optional[str]) -> Dict[str, Any]:
 #     """
 #     Run analysis with improved error handling and proper CrewOutput processing.
-#     Returns consolidated ContentCreatorInfo along with raw outputs.
+#     This function now ensures the RagCrew runs and its results are captured.
 #     """
 #     try:
-#         # Initialize result containers
+#         # Initialize our results container with all potential outputs
 #         results = {
 #             'youtube_raw': None,
 #             'instagram_raw': None,
+#             'rag_raw': None,
 #             'merged_content': None,
-#             'consolidated_info': None
+#             'consolidated_info': None,
+#             'final_analysis': None  # This will store the RAG analysis results
 #         }
 
 #         # Initialize result variables
@@ -731,6 +715,35 @@ def display_analysis_results(results: Dict[str, Any]) -> None:
                 
 #                 merge_status.text("✓ Merge complete!")
                 
+#                 # Prepare input for RAG analysis
+#                 rag_input = {
+#                     "input_string": json.dumps(merged_dict)
+#                 }
+                
+#                 # RAG Analysis Section
+#                 with st.container():
+#                     st.subheader("RAG Analysis")
+#                     rag_progress = st.progress(0)
+#                     rag_status = st.empty()
+                    
+#                     try:
+#                         rag_status.text("Running RAG analysis...")
+#                         rag_progress.progress(50)
+                        
+#                         rag_crew = RagCrew()
+#                         rag_result = rag_crew.crew().kickoff(inputs=rag_input)
+#                         results['rag_raw'] = rag_result
+                        
+#                         if rag_result and hasattr(rag_result, 'pydantic'):
+#                             # Store the final analysis
+#                             results['final_analysis'] = rag_result.pydantic.model_dump()
+#                             rag_progress.progress(100)
+#                             rag_status.text("✓ RAG analysis complete!")
+#                         else:
+#                             rag_status.warning("RAG analysis completed but returned no results")
+#                     except Exception as e:
+#                         rag_status.error(f"RAG analysis error: {str(e)}")
+                
 #                 return results
                 
 #             except Exception as e:
@@ -743,14 +756,20 @@ def display_analysis_results(results: Dict[str, Any]) -> None:
 
 # def display_analysis_results(results: Dict[str, Any]) -> None:
 #     """
-#     Display analysis results with proper error handling and formatting.
+#     Display analysis results including RAG output with proper error handling and formatting.
 #     """
 #     if not results:
 #         st.error("No results to display")
 #         return
     
+#     # Display final RAG analysis results first (if available)
+#     st.subheader("Final Analysis Results")
+#     if results.get('final_analysis'):
+#         with st.expander("View Final Analysis", expanded=True):
+#             st.json(results['final_analysis'])
+    
 #     # Display consolidated results
-#     st.subheader("Consolidated Analysis Results")
+#     st.subheader("Consolidated Data")
 #     if results.get('consolidated_info'):
 #         with st.expander("View Consolidated Results", expanded=True):
 #             consolidated_dict = results['consolidated_info'].model_dump()
@@ -765,7 +784,7 @@ def display_analysis_results(results: Dict[str, Any]) -> None:
 #             try:
 #                 youtube_data = results['youtube_raw'].pydantic.model_dump()
 #                 st.json(youtube_data)
-#             except Exception as e:
+#             except Exception:
 #                 st.write("No YouTube data available")
 #         else:
 #             st.write("No YouTube data available")
@@ -776,10 +795,21 @@ def display_analysis_results(results: Dict[str, Any]) -> None:
 #             try:
 #                 instagram_data = results['instagram_raw'].pydantic.model_dump()
 #                 st.json(instagram_data)
-#             except Exception as e:
+#             except Exception:
 #                 st.write("No Instagram data available")
 #         else:
 #             st.write("No Instagram data available")
+            
+#         # RAG raw data
+#         st.write("### RAG Analysis")
+#         if results.get('rag_raw') and hasattr(results['rag_raw'], 'pydantic'):
+#             try:
+#                 rag_data = results['rag_raw'].pydantic.model_dump()
+#                 st.json(rag_data)
+#             except Exception:
+#                 st.write("No RAG analysis data available")
+#         else:
+#             st.write("No RAG analysis data available")
 
 def main():
     """
