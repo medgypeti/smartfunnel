@@ -87,10 +87,10 @@ class FetchRelevantVideosFromYouTubeChannelTool(BaseTool):
                 return f"No suitable videos found for channel: {youtube_handle}"
 
             # Sort by popularity (view count) and take top 50
-            # popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:50]
-            popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:10]
+            popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:50]
+            # popular_videos = sorted(videos, key=lambda v: v.view_count, reverse=True)[:10]
             ranked_videos = self.rank_videos(popular_videos)
-            top_videos = ranked_videos[:10]
+            top_videos = ranked_videos[:15]
             # top_videos = ranked_videos[:2]
             # Create a summary string
             summary = f"Successfully analyzed {len(videos)} videos from {youtube_handle}.\n"
