@@ -64,6 +64,7 @@ config = {
         'config': {
             'model': 'gpt-4o-mini',
             'temperature': 0.4,
+            'api_key': None,  # Set in YouTubeAnalyzer.__init__
             # 'api_key': openai_api_key,
             'prompt': """
             Analyze the following content and answer the queries based on the content.
