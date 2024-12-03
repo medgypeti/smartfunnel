@@ -45,16 +45,19 @@ logger = logging.getLogger(__name__)
 #     }
 # }
 
+openai_api_key = st.text_input("Enter OpenAI API key:")
 config = {
     'llm': {
         'provider': 'openai',
         'config': {
             'model': 'gpt-4o-mini',
-            'temperature': 0.3,
-            'api_key': 'YOUR_OPENAI_API_KEY_HERE',
+            'temperature': 0.4,
+            'api_key': openai_api_key,
             'prompt': """
             Analyze the following content and answer the queries based on the content.
-            Whenever you can, give me also quotes or comments from the video to back up your points.
+            Answer in a concise and actionable manner.
+            Answer in bullet points. 
+            Back up claims with quotes or comments from the video to support your points.
             
             Context: $context
             
@@ -62,17 +65,17 @@ config = {
             
             Response:""",
             'system_prompt': """
-            You are a highy experienced product manager. You aim to answer the queries based on how the insights from the video can help figure out what to build next. Your answers are concise, actionable, and to the point. You don't use jargon, and you don't use long sentences.
+            You are a highy experienced product manager. When answering questions, you focus on workflows, pain points, and possible solutions. You don't go beyond scope. You don't make up information. You refer to product names, people, and companies they're mentioend. Your answers are concise, actionable, and to the point. You don't use jargon, and you don't use long sentences. You answer in bullet points.
             """
         }
     }
 }
 
 class YouTubeAnalyzer:
-    def __init__(self, openai_api_key: str):
+    def __init__(self):
         logger.info("Initializing YouTubeAnalyzer...")
         print("Setting up analyzer with OpenAI API key...")
-        config['llm']['config']['api_key'] = openai_api_key
+        # config['llm']['config']['api_key'] = openai_api_key
         try:
             self.app = App.from_config(config=config)
             logger.info("Successfully initialized embedchain App")
@@ -205,8 +208,9 @@ class YouTubeAnalyzer:
 def main():
     st.title("YouTube Video Analysis for Product Insights")
     
-    openai_api_key = st.text_input("Enter your OpenAI API key:", type="password")
+    # openai_api_key = st.text_input("Enter OpenAI API key:")
     youtube_url = st.text_input("Enter YouTube video URL:")
+    audience = st.text_input("Enter audience:")
     
     if not openai_api_key or not youtube_url:
         st.warning("Please provide both OpenAI API key and YouTube URL")
@@ -214,27 +218,26 @@ def main():
         
     if st.button("Analyze Video"):
         with st.spinner("Processing video..."):
-            analyzer = YouTubeAnalyzer(openai_api_key)
+            analyzer = YouTubeAnalyzer()
             if not analyzer.process_video(youtube_url):
                 return
 
-            audience = "public adjusters"
             progress_text = st.empty()
             
             progress_text.text("Analyzing problems...")
-            query_problem = f"What are the main workflow challenges that {audience} face in their day to day work? Focus on problems related to software and tools they use."
+            query_problem = f"What are the main workflow challenges that {audience} face in their day to day work?"
             response_problem = analyzer.query_video(query_problem)
             
             progress_text.text("Analyzing alternatives...")
-            query_alternative = f"What are the alternatives that {audience} have tried to implement ? Be specific about the names of the tools and products."
+            query_alternative = f"What are the alternatives that {audience} have tried to implement ? What tools did they try ? How did they fall short of expectations ? Be specific about the names of the tools {audience} tried."
             response_alternative = analyzer.query_video(query_alternative)
             
             progress_text.text("Analyzing ideal outcomes...")
-            query_ideal_outcome = f"How would {audience} envision the ideal outcome ? What are the ultimate benefits outcomes that {audience} are thriving for?"
+            query_ideal_outcome = f"What are the ultimate internal motivations that drive {audience} in their work ? What kind of benefits do they seek out of adopting a new product ? "
             response_ideal_outcome = analyzer.query_video(query_ideal_outcome)
             
             progress_text.text("Analyzing gaps...")
-            query_gaps = f"What are the gaps in existing solutions that prevent {audience} from achieving their ideal outcome? To establish this, you need to map out their current problems, the alternatives they have tried, their ideal outcome. And pinpoint what's missing. Here is the context about their current problems: {response_problem}. Here is the context about the existing alternatives: {response_alternative}. Here is the context about their ideal outcome: {response_ideal_outcome}."
+            query_gaps = f"What are the gaps in existing solutions that prevent {audience} from achieving their ideal outcome? To establish this, you need to map out their current problems, the alternatives they have tried, their ideal outcome. You can then identify what's missing. Here is the context about their current problems: {response_problem}. Here is the context about the existing alternatives: {response_alternative}. Here is the context about their ideal outcome: {response_ideal_outcome}."
             response_gaps = analyzer.query_video(query_gaps)
             
             progress_text.text("Analyzing product benefits...")
@@ -242,7 +245,7 @@ def main():
             response_benefits = analyzer.query_video(query_benefits)
             
             progress_text.text("Analyzing opportunities...")
-            query_opportunities = f"Based on the gaps observed to address {audience}'s pain points, and the benefits of the product described in the video, what are the oustanding opportunities ahead ? What are the gaps that remain unadressed after AFTER adopting the product described, and assimilating all of the {response_benefits} ? To figure this out, map out the gaps to address the pain points of {audience}, to the benefits of the product shared in the video, and pinpoint exactly where the product falls short. Here is the context about the unadressed needs before the product was introduced: {response_gaps}, here is the context about the benefits of the product: {response_benefits}."
+            query_opportunities = f"Based on the gaps observed to address {audience}'s pain points, and the benefits of the product described in the video, what are the oustanding opportunities ahead ? What are the gaps that remain unadressed EVEN AFTER adopting the product described, and assimilating all of the benefit. Here are the benefits from the product being discussed: {response_benefits}. Here are the gaps: {response_gaps}. Find the outstanding gaps and present them as opportunities."
             response_opportunities = analyzer.query_video(query_opportunities)
             
             progress_text.empty()
