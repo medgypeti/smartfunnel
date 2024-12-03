@@ -45,14 +45,26 @@ logger = logging.getLogger(__name__)
 #     }
 # }
 
-openai_api_key = st.text_input("Enter OpenAI API key:")
+# class YouTubeAnalyzer:
+#     def __init__(self):
+#         logger.info("Initializing YouTubeAnalyzer...")
+#         print("Setting up analyzer with OpenAI API key...")
+#         # config['llm']['config']['api_key'] = openai_api_key
+#         try:
+#             self.app = App.from_config(config=config)
+#             logger.info("Successfully initialized embedchain App")
+#             print("✓ Analyzer setup complete")
+#         except Exception as e:
+#             logger.error(f"Failed to initialize embedchain App: {str(e)}")
+#             print(f"✗ Error during setup: {str(e)}")
+#             raise
 config = {
     'llm': {
         'provider': 'openai',
         'config': {
             'model': 'gpt-4o-mini',
             'temperature': 0.4,
-            'api_key': openai_api_key,
+            # 'api_key': openai_api_key,
             'prompt': """
             Analyze the following content and answer the queries based on the content.
             Answer in a concise and actionable manner.
@@ -72,10 +84,10 @@ config = {
 }
 
 class YouTubeAnalyzer:
-    def __init__(self):
+    def __init__(self, openai_api_key: str):
         logger.info("Initializing YouTubeAnalyzer...")
         print("Setting up analyzer with OpenAI API key...")
-        # config['llm']['config']['api_key'] = openai_api_key
+        config['llm']['config']['api_key'] = openai_api_key
         try:
             self.app = App.from_config(config=config)
             logger.info("Successfully initialized embedchain App")
@@ -84,7 +96,7 @@ class YouTubeAnalyzer:
             logger.error(f"Failed to initialize embedchain App: {str(e)}")
             print(f"✗ Error during setup: {str(e)}")
             raise
-        
+
     def _extract_video_id(self, url: str) -> str:
         """Extract video ID from YouTube URL."""
         logger.info(f"Extracting video ID from URL: {url}")
@@ -208,7 +220,7 @@ class YouTubeAnalyzer:
 def main():
     st.title("YouTube Video Analysis for Product Insights")
     
-    # openai_api_key = st.text_input("Enter OpenAI API key:")
+    openai_api_key = st.text_input("Enter OpenAI API key:", type="password")
     youtube_url = st.text_input("Enter YouTube video URL:")
     audience = st.text_input("Enter audience:")
     
@@ -218,7 +230,7 @@ def main():
         
     if st.button("Analyze Video"):
         with st.spinner("Processing video..."):
-            analyzer = YouTubeAnalyzer()
+            analyzer = YouTubeAnalyzer(openai_api_key)
             if not analyzer.process_video(youtube_url):
                 return
 
