@@ -58,13 +58,48 @@ logger = logging.getLogger(__name__)
 #             logger.error(f"Failed to initialize embedchain App: {str(e)}")
 #             print(f"✗ Error during setup: {str(e)}")
 #             raise
-config = {
+
+
+# config = {
+#     'llm': {
+#         'provider': 'openai',
+#         'config': {
+#             'model': 'gpt-4o-mini',
+#             'temperature': 0.4,
+#             'api_key': None,  # Set in YouTubeAnalyzer.__init__
+#             # 'api_key': openai_api_key,
+#             'prompt': """
+#             Analyze the following content and answer the queries based on the content.
+#             Answer in a concise and actionable manner.
+#             Answer in bullet points. 
+#             Back up claims with quotes or comments from the video to support your points.
+            
+#             Context: $context
+            
+#             Query: $query
+            
+#             Response:""",
+#             'system_prompt': """
+#             You are a highy experienced product manager. When answering questions, you focus on workflows, pain points, and possible solutions. You don't go beyond scope. You don't make up information. You refer to product names, people, and companies they're mentioend. Your answers are concise, actionable, and to the point. You don't use jargon, and you don't use long sentences. You answer in bullet points.
+#             """
+#         }
+#     }
+# }
+
+class YouTubeAnalyzer:
+    def __init__(self, openai_api_key: str):
+        logger.info("Initializing YouTubeAnalyzer...")
+        print("Setting up analyzer with OpenAI API key...")
+        # config['llm']['config']['api_key'] = openai_api_key
+        try:
+            self.app = App.from_config(config=
+                 {
     'llm': {
         'provider': 'openai',
         'config': {
             'model': 'gpt-4o-mini',
             'temperature': 0.4,
-            'api_key': None,  # Set in YouTubeAnalyzer.__init__
+            'api_key': openai_api_key,  # Set in YouTubeAnalyzer.__init__
             # 'api_key': openai_api_key,
             'prompt': """
             Analyze the following content and answer the queries based on the content.
@@ -81,16 +116,7 @@ config = {
             You are a highy experienced product manager. When answering questions, you focus on workflows, pain points, and possible solutions. You don't go beyond scope. You don't make up information. You refer to product names, people, and companies they're mentioend. Your answers are concise, actionable, and to the point. You don't use jargon, and you don't use long sentences. You answer in bullet points.
             """
         }
-    }
-}
-
-class YouTubeAnalyzer:
-    def __init__(self, openai_api_key: str):
-        logger.info("Initializing YouTubeAnalyzer...")
-        print("Setting up analyzer with OpenAI API key...")
-        config['llm']['config']['api_key'] = openai_api_key
-        try:
-            self.app = App.from_config(config=config)
+    }})
             logger.info("Successfully initialized embedchain App")
             print("✓ Analyzer setup complete")
         except Exception as e:
